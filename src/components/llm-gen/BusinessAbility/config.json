@@ -1,0 +1,167 @@
+{
+    "emitEvent": true,
+    "fitHeight": true,
+    "apis": [
+        {
+            "method": "get",
+            "isFirstScreen": true,
+            "alias": "tabs",
+            "url": "https://basic.10jqka.com.cn/basicapi/operate/competitiveness/v1/business_list/",
+            "params": {
+                "code": "${code}",
+                "market": "${market}",
+                "type": "stock",
+                "sort_index":"income",
+                "locale":"zh_CN",
+                "noWithCredentials": 1
+            },
+            "returnValExample": {
+              "business_name_list": [{
+                "id": "36063",
+                "name": "金融信息服务"
+              }]
+            }
+        },
+        {
+            "method": "post",
+            "isFirstScreen": true,
+            "alias": "scatter",
+            "depends": [
+                "tabs"
+            ],
+            "url": "https://data.10jqka.com.cn/basicapi/visual/smart/index/v1/visual",
+            "params": {
+                "business_id": "configurable_fetcher",
+                "config_id": "business_competitiveness_fetcher_config",
+                "subjects": [
+                    "${market}-${code}"
+                ],
+                "strategy": "newest",
+                "engine": "default",
+                "source": "http_custom",
+                "extensions": {
+                    "business_id": "${tabs.business_name_list[0].id}"
+                }
+            },
+            "returnValExample": {
+              "data": [
+                {
+                  "公司名称": "同花顺",
+                  "年": "2024",
+                  "总利润": "5698653771.90",
+                  "总利润同比": "0.02313632",
+                  "总营收": "10345903326.05",
+                  "总营收同比": "0.10357656",
+                  "是否当前公司": "1",
+                  "机构ID": "T000025753",
+                  "毛利率": "0.94569728",   
+                  "股票代码": "300033",
+                  "股票简称": "同花顺",
+                  "营业利润": "1914905304.07",
+                  "营业收入": "2024860750.64"
+                }
+              ],
+              "input": {
+                "data_type": "Tabular",
+                "attribute_description": [
+                  {
+                    "attribute_name": "股票简称",
+                    "attribute_type": "STR",
+                    "attribute_unit": null
+                  },
+                  {
+                    "attribute_name": "股票代码",
+                    "attribute_type": "STR",
+                    "attribute_unit": null
+                  },
+                  {
+                    "attribute_name": "年",
+                    "attribute_type": "STR",
+                    "attribute_unit": null
+                  },
+                  {
+                    "attribute_name": "公司名称",
+                    "attribute_type": "STR",
+                    "attribute_unit": null
+                  },
+                  {
+                    "attribute_name": "营业收入",
+                    "attribute_type": "STR",
+                    "attribute_unit": null
+                  },
+                  {
+                    "attribute_name": "营业利润",
+                    "attribute_type": "STR",
+                    "attribute_unit": null
+                  },
+                  {
+                    "attribute_name": "毛利率",
+                    "attribute_type": "STR",
+                    "attribute_unit": null
+                  },
+                  {
+                    "attribute_name": "是否当前公司",
+                    "attribute_type": "STR",
+                    "attribute_unit": null
+                  },
+                  {
+                    "attribute_name": "机构ID",
+                    "attribute_type": "STR",
+                    "attribute_unit": null
+                  },
+                  {
+                    "attribute_name": "股票代码",
+                    "attribute_type": "STR",
+                    "attribute_unit": null
+                  },
+                  {
+                    "attribute_name": "总营收",
+                    "attribute_type": "STR",
+                    "attribute_unit": null
+                  },
+                  {
+                    "attribute_name": "总营收同比",
+                    "attribute_type": "STR",
+                    "attribute_unit": null
+                  },
+                  {
+                    "attribute_name": "总利润",
+                    "attribute_type": "STR",
+                    "attribute_unit": null
+                  },
+                  {
+                    "attribute_name": "总利润同比",
+                    "attribute_type": "STR",
+                    "attribute_unit": null
+                  }
+                ]
+              }
+            }
+        }
+    ],
+    "view": {
+        "main": {
+          "layers": [
+            {
+              "label": {
+                "formatter": "{b}"
+              },
+              "type": "dynamicBubble",
+              "encoding": {
+                "name": "公司名称",
+                "value": [
+                  "营业收入",
+                  "毛利率",
+                  "营业利润"
+                ],
+                "group": "年"
+              },
+              "stocks": [],
+              "dataIndex": 0,
+              "animationDuration": 1000
+            }
+          ],
+          "dvInsight": []
+        }
+      }
+}

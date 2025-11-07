@@ -1,0 +1,5 @@
+import type{ComputedRef}from"vue";
+export interface Stock{market:string;code:string;name:string}
+export interface RenderParams{view:{main:any,secondary:any};data:[];dom:HTMLElement;layout:string;hook:any;token:any;amisConfig:{apis:ApiInfo[];kamisJsonpKey?:string};kamisToken?:string;code?:string;market?:string}
+export interface ApiInfo{url:string;useLocalCache?:boolean;expireDuration?:number;method:string;cb?:string;data:any}
+export interface ComponentRenderReturn{renderChart():void;changeChart(data:any):void;isDataValid():boolean;isSupportChange():boolean;destoryChart():void;changeViewIndex(index:number):void;fitHeight:ComputedRef<boolean>;emitCustomEvent:ComputedRef<boolean>;fullWidth:ComputedRef<boolean>;closeInsight():void;chartHeight:ComputedRef<string>;loadingHeight:ComputedRef<string>;isLowCode:ComputedRef<boolean>}

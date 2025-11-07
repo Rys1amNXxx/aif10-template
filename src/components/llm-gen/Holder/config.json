@@ -1,0 +1,133 @@
+{
+    "emitEvent": true,
+    "fitHeight": true,
+    "apis": [
+        {
+            "method": "post",
+            "isFirstScreen": true,
+            "alias": "bartable",
+            "url": "https://data.10jqka.com.cn/basicapi/visual/smart/index/v1/visual",
+            "params": {
+                "business_id": "configurable_fetcher",
+                "config_id": "hr_holder_num_v2_fetcher_config",
+                "subjects": [
+                    "${market}-${code}"
+                ],
+                "strategy": "period",
+                "engine": "default",
+                "source": "indicator_custom",
+                "extensions": {},
+                "to": "now",
+                "from": "-21 months"
+            },
+            "returnValExample": {
+              "data": [
+                {
+                  "A股股东户数": "89221",
+                  "B股股东户数": "",
+                  "H股股东户数": "",
+                  "ths_code": "300033.SZ",
+                  "人均持股金额": "881904.416377992000",
+                  "人均流通股": "3087.90061757",
+                  "变动日期": "2025-03-31",
+                  "收盘价(前复权,分红再投)": "285.6",
+                  "股东总户数": "89221",
+                  "股票代码": "",
+                  "股票简称": ""
+                }
+              ],
+              "input": {
+                "data_type": "Tabular",
+                "attribute_description": [
+                    {
+                        "attribute_name": "股票简称",
+                        "attribute_type": "STR",
+                        "attribute_unit": null
+                    },
+                    {
+                        "attribute_name": "股票代码",
+                        "attribute_type": "STR",
+                        "attribute_unit": null
+                    },
+                    {
+                        "attribute_name": "ths_code",
+                        "attribute_type": "STR",
+                        "attribute_unit": null
+                    },
+                    {
+                        "attribute_name": "人均流通股",
+                        "attribute_type": "DOUBLE",
+                        "attribute_unit": "股"
+                    },
+                    {
+                        "attribute_name": "A股股东户数",
+                        "attribute_type": "DOUBLE",
+                        "attribute_unit": "户"
+                    },
+                    {
+                        "attribute_name": "变动日期",
+                        "attribute_type": "DATE",
+                        "attribute_unit": ""
+                    },
+                    {
+                        "attribute_name": "股东总户数",
+                        "attribute_type": "DOUBLE",
+                        "attribute_unit": "户"
+                    },
+                    {
+                        "attribute_name": "人均持股金额",
+                        "attribute_type": "DOUBLE",
+                        "attribute_unit": "元"
+                    },
+                    {
+                        "attribute_name": "H股股东户数",
+                        "attribute_type": "DOUBLE",
+                        "attribute_unit": "户"
+                    },
+                    {
+                        "attribute_name": "B股股东户数",
+                        "attribute_type": "DOUBLE",
+                        "attribute_unit": "户"
+                    },
+                    {
+                        "attribute_name": "收盘价(前复权,分红再投)",
+                        "attribute_type": "DOUBLE",
+                        "attribute_unit": ""
+                    }
+                ]
+            }
+            }
+        }
+    ],
+    "view": [{
+        "main": {
+          "layers": [
+            {
+              "label": {
+                "formatter": "{b}"
+              },
+              "type": "dynamicBubble",
+              "encoding": {
+                "name": "公司名称",
+                "value": [
+                  "营业收入",
+                  "毛利率",
+                  "营业利润"
+                ],
+                "group": "年"
+              },
+              "stocks": [],
+              "dataIndex": 0,
+              "animationDuration": 1000
+            }
+          ],
+          "dvInsight": []
+        }
+      }, {
+        "main": {
+          "layers": [],
+          "dvInsight": []
+        }
+      }
+    ]
+}

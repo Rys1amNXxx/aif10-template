@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI-F10</title>
+    <style>
+      html {
+        height: 100%;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        font-family:
+          PingFang Medium,
+          PingFang SC,
+          Source Han Sans !important;
+        overflow-x: auto;
+        background: /* 左下角的亮色光晕 - 稍微提亮 */
+            radial-gradient(
+                ellipse at 15% 85%,
+                rgba(220, 210, 245, 0.45) 0%,
+                rgba(215, 205, 235, 0.28) 35%,
+                transparent 60%
+            ),
+            /* 右上角稍微暗一点的区域 - 新增 */
+            radial-gradient(
+                ellipse at 80% 20%,
+                rgba(210, 210, 225, 0.15) 0%,
+                rgba(215, 215, 230, 0.08) 40%,
+                transparent 70%
+            ),
+            radial-gradient(
+                ellipse at 20% 20%,
+                rgba(205, 205, 230, 0.32) 0%,
+                rgba(215, 215, 240, 0.18) 40%,
+                transparent 70%
+            ),
+            /* 右侧的淡蓝紫色光晕 - 稍微提亮 */
+            radial-gradient(
+                ellipse at 85% 50%,
+                rgba(185, 200, 240, 0.42) 0%,
+                rgba(190, 205, 245, 0.22) 40%,
+                transparent 70%
+            ),
+            /* 右下角的淡蓝色 - 稍微提亮 */
+            radial-gradient(
+                ellipse at 90% 90%,
+                rgba(170, 190, 250, 0.28) 0%,
+                rgba(180, 200, 250, 0.15) 50%,
+                transparent 80%
+            ),
+            /* 整体基调 - 稍微提亮 */
+            linear-gradient(
+                160deg,
+                rgba(248, 248, 252, 1) 0%,
+                rgba(250, 250, 254, 1) 30%,
+                rgba(252, 252, 255, 1) 60%,
+                rgba(254, 254, 255, 1) 100%
+            );
+            background-repeat: no-repeat;
+            background-size: cover;
+      }
+      html.dark {
+        background: radial-gradient(circle at 20% 50%, rgba(24, 41, 83, 0.6) 0%, transparent 40%),
+              radial-gradient(circle at 80% 50%, rgba(87, 24, 100, 0.6) 0%, transparent 40%),
+              linear-gradient(to bottom, #0a0a23 0%, #000000 100%);
+        background-color: #0a0a23;
+      }
+      body {
+        height: 100%;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+    </style>
+    <!-- PC端协议CDN/埋点/方法库 -->
+    <script
+      crossorigin
+      src="//s.thsi.cn/cb?js/common/cefapi/1.5.5/cefApi.min.js;js/basic/stock/newPcJs/common.js;js/home/;ths_core.min.js"
+    ></script>
+    <script>
+      console.log('html resource load start：', performance.now())
+      // 统一版客户端主题设置
+      function isClient() {
+        if (window.external && 'createObject' in window.external && window.cefQuery) {
+          return true
+        }
+        return false
+      }
+
+      //取得对应名字cookie
+      function getCookie(name) {
+        var cookieValue = "";
+        var search = name + "=";
+        if (document.cookie.length > 0) {
+            offset = document.cookie.indexOf(search);
+            if (offset != -1)    {
+                offset += search.length;
+                end = document.cookie.indexOf(";", offset);
+                if (end == -1) end = document.cookie.length;
+                cookieValue = unescape(document.cookie.substring(offset, end))
+            }
+        }
+        return cookieValue;
+      }
+
+      function setTheme(themeParam) {
+        let theme = themeParam
+        if (!themeParam) {
+          theme = getCookie('skin_color') || localStorage.getItem('vueuse-color-scheme');
+          if (theme !== 'light' && theme !== 'white') {
+            theme = 'dark'
+          }
+        }
+        localStorage.setItem('vueuse-color-scheme', theme)
+
+        if (
+          (theme !== 'light' && theme !== 'white') ||
+          (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        ) {
+          document.documentElement.classList.add('dark')
+        } else {
+          document.documentElement.classList.remove('dark')
+        }
+      }
+
+      try {
+        setTheme()
+        if (isClient()) {
+          API.use({
+            method: 'Util.getSkinName',
+            success: function (theme) {
+              const themeParam = theme !== '白色风格' ? 'dark' : 'light'
+              localStorage.setItem('vueuse-color-scheme', themeParam)
+            }
+          })
+        }
+      } catch (_) {}
+    </script>
+    <link rel="manifest" href="/manifest.json" />
+  </head>
+  <body>
+    <div id="app" class="flex-common"></div>
+    <script
+      crossorigin
+      src="//s.thsi.cn/cb?cd/weblog/0.0.1-alpha.29/weblog.js;cd/website-thsc-f10-utils/1.6.3/;thsc-f10-utils.js;js/m/common/;basic.js"
+    ></script>
+
+    <!-- 可视化组件依赖 -->
+    <script
+      crossorigin
+      src="//s.thsi.cn/cd/website-f10-pluto/v3.6.4/lib/standard-chart/1.8.0/bundle.umd.min.js"
+    ></script>
+    <!-- <script src="./lib/standard-chart/1.8.0/bundle.umd.min.js"></script> -->
+    <script
+      crossorigin
+      src="//s.thsi.cn/cd/website-f10-pluto/v3.0/lib/timeline/0.3.1/bundle.umd.min.js"
+    ></script>
+
+    <!-- 如果需要渲染行情可视化图表，请引入依赖的HXKline组件库 -->
+    <script crossorigin src="//s.thsi.cn/cd/b2cweb-component-hxkline-front/index.1.2.3.js"></script>
+    <script crossorigin src="//s.thsi.cn/cd/b2cweb-component-hxklinechart-front/index.2.1.3.js"></script>
+
+    <script
+      crossorigin
+      src="//s.thsi.cn/cd/website-f10-pluto/static/lib/aigc-data-vis/bolt-v1/bundle.umd.min.js"
+    ></script>
+    <!-- <script src="./lib/aigc-data-vis/20250609/bundle.umd.min.js"></script> -->
+
+    <!-- 拖拽tab库 -->
+    <script crossorigin src="//s.thsi.cn/cd/website-f10-pluto/v3.2/lib/sortable.min.js"></script>
+
+    <script crossorigin src="//s.thsi.cn/cb?hxapp/m/base/js/vue.2.7.16.min.js;webprivate/lib/axios.min.js"></script>
+
+    <!-- <script src="//s.thsi.cn/cd/website-f10-pluto/v3.6.5/lib/monitor/20250226/monitor.js" id="monitor-script" api_key="ths_aif10" crossorigin="anonymous"></script> -->
+    <!-- <script src="./lib/monitor/20250226/monitor.js" id="monitor-script" api_key="ths_aif10"></script> -->
+
+    <script>
+      // Web端登录
+      var loginIssue = {
+        isLogin: function () {
+          var uname = unescape(unescape(THS.cookie.get('escapename')))
+          if (uname.length > 0) {
+            return true
+          } else {
+            return false
+          }
+        },
+        getUser: function () {
+          var user = new Array()
+          var uname = unescape(unescape(THS.cookie.get('escapename')))
+          if (uname.length > 0) {
+            user['uname'] = uname
+          }
+          var userid = unescape(unescape(THS.cookie.get('userid')))
+          if (userid.length > 0) {
+            user['userid'] = userid
+            user['avatar'] =
+              'http://space.10jqka.com.cn/avatar/' +
+              (parseInt(userid) % 10000) +
+              '/' +
+              userid +
+              '.gif'
+          }
+          return user
+        },
+        getInfo: function () {
+          if (loginIssue.isLogin()) {
+            var user = loginIssue.getUser()
+            var uname = user['uname']
+            $('#J_username').html(uname)
+            $('.login-box').addClass('hide')
+            $('.logined_box').removeClass('hide')
+          } else {
+            $('.login-box').removeClass('hide')
+            $('.logined_box').addClass('hide')
+          }
+          loginIssue.logOut()
+        },
+        logOut: function (url) {
+          if (location.host.indexOf('10jqka.com.cn') > -1) {
+            window.location.href = 'https://upass.10jqka.com.cn/logout?redir=' + url
+          } else {
+            window.location.href =
+              'https://upass.10jqka.com.cn/logout?redir=' +
+              encodeURIComponent(
+                'https://' + 'upass.300033.info/logout?redir=' + encodeURIComponent(url)
+              )
+          }
+        }
+      }
+      window.weblog = {
+        report: function () {},
+        setConfig: function () {}
+      }
+
+      function getStatId() {
+        const statIdMap = {
+          yh: '1afc3b30f6',
+          mac: '0b96e5e657',
+          thspc: 'a85ac98cdf',
+        }
+        const appName = F10Utils.getUrlParams('client');
+        return statIdMap[appName] || 'a85ac98cdf';
+      }
+
+      var setWebLog = function () {
+        // 埋点注册
+        window.weblog.setConfig({
+          appKey: getStatId(),
+          debug: true
+        })
+      }
+      setWebLog();
+
+      console.log('html resource load time：', performance.now())
+
+    </script>
+    <script type="module" src="./src/views/main.ts"></script>
+  </body>
+</html>

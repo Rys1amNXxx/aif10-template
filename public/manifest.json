@@ -1,0 +1,17 @@
+{
+  "name": "AI-F10",
+  "short_name": "F10",
+  "start_url": "/f10-pluto/v3.3/",
+  "description": "同花顺F10团队结合AI技术推出的AI-F10产品",
+  "icons": [
+    {
+      "src": "logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ],
+  "scope": "/f10-pluto/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#4DBA87"
+}
