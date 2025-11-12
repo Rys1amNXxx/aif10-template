@@ -29,7 +29,8 @@
 
     <!-- 左下角水印 -->
     <div
-      class="absolute left-[14px] bottom-[14px] text-[11px] text-[#9FA9B5] black:text-[#768496] pointer-events-none leading-[1.4] max-w-[260px] z-10">
+      class="absolute left-[14px] bottom-[14px] text-[11px] text-[#9FA9B5] black:text-[#768496] 
+      pointer-events-none leading-[1.4] max-w-[260px] z-10">
       <p>· 数据取自董事会经营综述、研报和互动易</p>
       <p>· 内容由 AI 生成</p>
     </div>
@@ -67,8 +68,8 @@ const themeColors = computed(() => {
   if (isDark.value) {
     return {
       // 节点
-      nodeFill: '#374152',           // background-16-dark
-      nodeBorder: '#60656C',         // border-01-dark
+      nodeFill: '#1D273F',           // background-16-dark
+      nodeBorder: '#374152',         // border-01-dark
       nodeText: '#F9FBFC',           // text-01-dark
       nodeSecondaryText: '#BCC3CE',  // text-04-dark
       // 边
