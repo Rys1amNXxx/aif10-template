@@ -394,12 +394,11 @@ class TreeNode extends Rect {
         e?.stopImmediatePropagation?.();
       };
 
-      btn.addEventListener(CommonEvent.POINTERENTER, stopPointerPropagation);
-      btn.addEventListener(CommonEvent.POINTERMOVE, stopPointerPropagation);
-      btn.addEventListener(CommonEvent.POINTERLEAVE, stopPointerPropagation);
-      btn.addEventListener(CommonEvent.MOUSEENTER, stopPointerPropagation);
-      btn.addEventListener(CommonEvent.MOUSEMOVE, stopPointerPropagation);
-      btn.addEventListener(CommonEvent.MOUSELEAVE, stopPointerPropagation);
+      btn.addEventListener(CommonEvent.POINTER_ENTER, stopPointerPropagation);
+      btn.addEventListener(CommonEvent.POINTER_MOVE, stopPointerPropagation);
+      btn.addEventListener(CommonEvent.POINTER_LEAVE, stopPointerPropagation);
+      btn.addEventListener(CommonEvent.POINTER_OVER, stopPointerPropagation);
+      btn.addEventListener(CommonEvent.POINTER_OUT, stopPointerPropagation);
       btn.addEventListener(CommonEvent.CLICK, (event: any) => {
         stopPointerPropagation(event);
         const { collapsed } = this.attributes;
