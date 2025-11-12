@@ -3,24 +3,27 @@
   <div
     class="relative border border-border-08 black:border-border-08-dark rounded-md shadow-[inset_0_4px_30px_rgba(88,108,158,0.12)]">
     <!-- 左上角控制按钮 -->
-    <div class="absolute top-4 left-4 flex gap-2.5 z-10">
-      <button type="button" class="w-7 h-7 rounded border border-border-08 black:border-border-03-dark 
-        bg-white black:bg-[#111A31] text-[#5261a7] black:text-text-02-01-dark text-base 
-        cursor-pointer transition-all hover:bg-[#e6edff] black:hover:bg-background-03-dark shadow"
+    <div class="absolute top-3 left-3 flex gap-2 z-10">
+      <button type="button"
+        class="w-7 h-7 rounded border border-border-08 black:border-border-03-dark 
+        bg-white black:bg-[#111A31] text-[#768496] black:text-text-02-01-dark text-base 
+        cursor-pointer transition-all hover:bg-[#e6edff] black:hover:bg-background-03-dark shadow flex items-center justify-center"
         @click="handleRefresh" aria-label="刷新图谱">
-        ↻
+        <ResetIcon />
       </button>
-      <button type="button" class="w-7 h-7 rounded border border-border-08 black:border-border-03-dark 
-        bg-white black:bg-[#111A31] text-[#5261a7] black:text-text-02-01-dark text-base 
-        cursor-pointer transition-all hover:bg-[#e6edff] black:hover:bg-background-03-dark shadow"
+      <button type="button"
+        class="w-7 h-7 rounded border border-border-08 black:border-border-03-dark 
+        bg-white black:bg-[#111A31] text-[#768496] black:text-text-02-01-dark text-base 
+        cursor-pointer transition-all hover:bg-[#e6edff] black:hover:bg-background-03-dark shadow flex items-center justify-center"
         @click="() => handleZoom(1.15)" aria-label="放大图谱">
-        +
+        <ZoomInIcon />
       </button>
-      <button type="button" class="w-7 h-7 rounded border border-border-08 black:border-border-03-dark 
-        bg-white black:bg-[#111A31] text-[#5261a7] black:text-text-02-01-dark text-base 
-        cursor-pointer transition-all hover:bg-[#e6edff] black:hover:bg-background-03-dark shadow"
+      <button type="button"
+        class="w-7 h-7 rounded border border-border-08 black:border-border-03-dark 
+        bg-white black:bg-[#111A31] text-[#768496] black:text-text-02-01-dark text-base 
+        cursor-pointer transition-all hover:bg-[#e6edff] black:hover:bg-background-03-dark shadow flex items-center justify-center"
         @click="() => handleZoom(0.85)" aria-label="缩小图谱">
-        -
+        <ZoomOutIcon />
       </button>
     </div>
 
@@ -38,7 +41,10 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useDark } from '@vueuse/core';
-import { Rect as GRect, Text as GText } from '@antv/g';
+import { Line as GLine, Rect as GRect, Text as GText } from '@antv/g';
+import ResetIcon from '@/components/icons/Reset.vue';
+import ZoomInIcon from '@/components/icons/zoomIn.vue';
+import ZoomOutIcon from '@/components/icons/zoomOut.vue';
 import {
   Badge,
   CommonEvent,
@@ -74,7 +80,7 @@ const themeColors = computed(() => {
       // 标签
       tagNormalBg: '#F0F4F91F',
       tagNormalBorder: 'rgba(130, 143, 161, 0.2)',
-      tagNormalText: '#F0F4F9',
+      tagNormalText: '#F0F4F9A0',
       tagSpecialBg: '#FD20331F',
       tagSpecialBorder: '#FF2436',
       tagSpecialText: '#FD2033',
@@ -91,7 +97,7 @@ const themeColors = computed(() => {
       nodeText: '#131B2A',           // text-01
       nodeSecondaryText: '#768496',  // text-04
       // 边
-      edgeStroke: '#828FA1',
+      edgeStroke: '#828FA1AA',
       edgeLabelFill: '#2A354E',
       // 标签
       tagNormalBg: '#7684961F',
@@ -107,6 +113,11 @@ const themeColors = computed(() => {
     };
   }
 });
+
+const COLLAPSE_EXPAND_ANIMATION = {
+  duration: 420,
+  easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+};
 
 const style = document.createElement('style');
 style.innerHTML = `@import url('${iconfont.css}');`;
@@ -277,8 +288,8 @@ function createClickTooltipPlugin(this: Graph) {
       const titleColor = dark ? '#BCC3CE' : '#768496';
 
       return `
-        <div style="max-width: 360px; background: transparent; border: transparent; border-radius: 12px; font-size: 12px; line-height: 1.6; color: ${textColor}">
-          <div style="font-size: 12px; font-weight: 600; color: ${titleColor}; margin-bottom: 8px;">节点描述</div>
+        <div style="max-width: 360px; background: transparent; border: transparent; border-radius: 12px; font-size: 14px; line-height: 1.6; color: ${textColor}">
+          <div style="font-size: 16px; font-weight: 600; color: ${titleColor}; margin-bottom: 8px;">节点描述</div>
           <div>${formatDetailToHtml(detail)}</div>
         </div>
       `;
@@ -309,7 +320,7 @@ class TreeNode extends Rect {
   getLabelStyle(attributes) {
     const [width, height] = this.getSize(attributes);
     return {
-      x: -width / 2 + 10,
+      x: -width / 2 + 18,
       y: -height / 2 + 23,
       text: this.data.name,
       fontSize: 14,
@@ -345,7 +356,7 @@ class TreeNode extends Rect {
 
     // 未展开：保持原来的位置在卡片底部
     return {
-      x: -width / 2 + 8,
+      x: -width / 2 + 18,
       y: height / 2 - 12,
       text: this.data.label,
       fontSize: 14,
@@ -365,17 +376,12 @@ class TreeNode extends Rect {
     const [width, height] = this.getSize(attributes);
     return {
       backgroundFill: themeColors.value.collapseBg,
-      backgroundHeight: 16,
+      backgroundHeight: 18,
       backgroundLineWidth: 1,
-      backgroundRadius: 0,
+      backgroundRadius: 4,
       backgroundStroke: themeColors.value.collapseBorder,
-      backgroundWidth: 16,
+      backgroundWidth: 18,
       cursor: 'pointer',
-      fill: themeColors.value.collapseFill,
-      fontSize: 16,
-      text: collapsed ? '+' : '-',
-      textAlign: 'center',
-      textBaseline: 'middle',
       x: width / 2 + 10,
       y: 0,
       name: COLLAPSE_TARGET_NAME,
@@ -409,6 +415,53 @@ class TreeNode extends Rect {
           graph.collapseElement(this.id);
         }
       });
+    }
+
+    this.drawCollapseIcon(attributes, container);
+  }
+
+  drawCollapseIcon(attributes, container) {
+    const collapseStyle = this.getCollapseStyle(attributes);
+    if (!collapseStyle) return;
+
+    const centerX = collapseStyle.x;
+    const centerY = collapseStyle.y;
+    const size = 5;
+    const color = themeColors.value.collapseFill;
+
+    this.upsert(
+      'collapse-icon-horizontal',
+      GLine,
+      {
+        x1: centerX - size,
+        y1: centerY,
+        x2: centerX + size,
+        y2: centerY,
+        stroke: color,
+        lineWidth: 1.6,
+        strokeLinecap: 'round',
+      },
+      container,
+    );
+
+    if (this.attributes.collapsed) {
+      this.upsert(
+        'collapse-icon-vertical',
+        GLine,
+        {
+          x1: centerX,
+          y1: centerY - size,
+          x2: centerX,
+          y2: centerY + size,
+          stroke: color,
+          lineWidth: 1.6,
+          strokeLinecap: 'round',
+        },
+        container,
+      );
+    } else if (this.shapeMap?.['collapse-icon-vertical']) {
+      this.shapeMap['collapse-icon-vertical'].remove();
+      delete this.shapeMap['collapse-icon-vertical'];
     }
   }
 
@@ -455,8 +508,8 @@ class TreeNode extends Rect {
     const labelStyle: any = this.getLabelStyle(attributes);
     const labelBounds = this.getLabelBounds();
     const labelRight = labelBounds ? labelBounds.max[0] : labelStyle.x + this.estimateTextWidth(labelStyle.text, labelStyle.fontSize ?? 12);
-    const x = labelRight + TITLE_TAG_GAP;
-    const y = labelStyle.y;          // 与标题同一行
+    const x = labelRight + TITLE_TAG_GAP + 2;
+    const y = labelStyle.y - 2;          // 与标题同一行
     const tagFontSize = 12;
     const tagTextWidth = this.estimateTextWidth(this.data.tag, tagFontSize);
     const backgroundWidth = Math.max(TAG_MIN_WIDTH, tagTextWidth + TAG_HORIZONTAL_PADDING);
@@ -521,6 +574,7 @@ const initGraph = async () => {
 
   const graph = new Graph({
     container: 'container',
+    animation: COLLAPSE_EXPAND_ANIMATION,
     data: treeToGraphData(data, {
       getNodeData: (datum, depth) => {
         if (!datum.style) datum.style = {};
@@ -701,13 +755,13 @@ watch(isDark, () => {
   height: 520px;
   border-radius: 16px;
   background: #F2F5FA;
-  background-image: radial-gradient(#dbe1f5 1.5px, transparent 1px);
+  background-image: radial-gradient(#dbe1f5 1.5px, transparent 2px);
   background-size: 26px 26px;
 }
 
 .dark #container {
   background: #09101F;
-  background-image: radial-gradient(#3d4a64 1.5px, transparent 1px);
+  background-image: radial-gradient(#3d4a647e 1.5px, transparent 2px);
   background-size: 26px 26px;
   border-radius: 16px;
 }
