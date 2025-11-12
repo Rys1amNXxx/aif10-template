@@ -4,22 +4,19 @@
     class="relative border border-border-08 black:border-border-08-dark rounded-md shadow-[inset_0_4px_30px_rgba(88,108,158,0.12)]">
     <!-- 左上角控制按钮 -->
     <div class="absolute top-4 left-4 flex gap-2.5 z-10">
-      <button type="button"
-        class="w-7 h-7 rounded border border-border-08 black:border-border-03-dark 
+      <button type="button" class="w-7 h-7 rounded border border-border-08 black:border-border-03-dark 
         bg-white black:bg-[#111A31] text-[#5261a7] black:text-text-02-01-dark text-base 
         cursor-pointer transition-all hover:bg-[#e6edff] black:hover:bg-background-03-dark shadow"
         @click="handleRefresh" aria-label="刷新图谱">
         ↻
       </button>
-      <button type="button"
-        class="w-7 h-7 rounded border border-border-08 black:border-border-03-dark 
+      <button type="button" class="w-7 h-7 rounded border border-border-08 black:border-border-03-dark 
         bg-white black:bg-[#111A31] text-[#5261a7] black:text-text-02-01-dark text-base 
         cursor-pointer transition-all hover:bg-[#e6edff] black:hover:bg-background-03-dark shadow"
         @click="() => handleZoom(1.15)" aria-label="放大图谱">
         +
       </button>
-      <button type="button"
-        class="w-7 h-7 rounded border border-border-08 black:border-border-03-dark 
+      <button type="button" class="w-7 h-7 rounded border border-border-08 black:border-border-03-dark 
         bg-white black:bg-[#111A31] text-[#5261a7] black:text-text-02-01-dark text-base 
         cursor-pointer transition-all hover:bg-[#e6edff] black:hover:bg-background-03-dark shadow"
         @click="() => handleZoom(0.85)" aria-label="缩小图谱">
@@ -28,8 +25,7 @@
     </div>
 
     <!-- 左下角水印 -->
-    <div
-      class="absolute left-[14px] bottom-[14px] text-[11px] text-[#9FA9B5] black:text-[#768496] 
+    <div class="absolute left-[14px] bottom-[14px] text-[11px] text-[#9FA9B5] black:text-[#768496] 
       pointer-events-none leading-[1.4] max-w-[260px] z-10">
       <p>· 数据取自董事会经营综述、研报和互动易</p>
       <p>· 内容由 AI 生成</p>
@@ -221,12 +217,19 @@ const getEventDetail = (event: any, graph?: Graph) => {
 };
 
 function createHoverTooltipPlugin(this: Graph) {
+  const dark = isDark.value;
   const graph = this;
   return {
     key: HOVER_TOOLTIP_KEY,
     type: 'tooltip' as const,
     trigger: 'hover' as const,
     itemTypes: ['node'],
+    style: {
+      '.tooltip': {
+        background: dark ? '#4A5465' : '#FFFFFF',
+        border: dark ? '1px solid #374152' : '#EBEDF0',
+      },
+    },
     enable(event: any) {
       if (isCollapseTarget(event)) return false;
       const detail = getEventDetail(event, graph);
@@ -240,18 +243,26 @@ function createHoverTooltipPlugin(this: Graph) {
     },
     getContent: (evt: any) => {
       if (isCollapseTarget(evt)) return '';
-      return `<div class="node-tooltip-hint">点击查看详细信息</div>`;
+      const textColor = dark ? '#F0F4F9' : '#4A5465';
+      return `<div style="font-size: 12px; font-weight: 400; color: ${textColor}; white-space: nowrap;">点击查看详细信息</div>`;
     },
   };
 }
 
 function createClickTooltipPlugin(this: Graph) {
+  const dark = isDark.value;
   const graph = this;
   return {
     key: CLICK_TOOLTIP_KEY,
     type: 'tooltip' as const,
     trigger: 'click' as const,
     itemTypes: ['node'],
+    style: {
+      ".tooltip": {
+        background: dark ? '#4A5465' : '#FFFFFF',
+        border: dark ? '1px solid #374152' : '#EBEDF0',
+      },
+    },
     enable(event: any) {
       if (isCollapseTarget(event)) return false;
       return Boolean(getEventDetail(event, graph));
@@ -260,10 +271,15 @@ function createClickTooltipPlugin(this: Graph) {
       if (isCollapseTarget(evt)) return '';
       const detail = getDetailFromItems(items, graph);
       if (!detail) return '';
+
+      // const dark = isDark.value;
+      const textColor = dark ? '#F0F4F9' : '#4A5465';
+      const titleColor = dark ? '#BCC3CE' : '#768496';
+
       return `
-        <div class="node-detail-tooltip">
-          <div class="node-detail-tooltip__title">节点描述</div>
-          <div class="node-detail-tooltip__content">${formatDetailToHtml(detail)}</div>
+        <div style="max-width: 360px; background: transparent; border: transparent; border-radius: 12px; font-size: 12px; line-height: 1.6; color: ${textColor}">
+          <div style="font-size: 12px; font-weight: 600; color: ${titleColor}; margin-bottom: 8px;">节点描述</div>
+          <div>${formatDetailToHtml(detail)}</div>
         </div>
       `;
     },
@@ -772,48 +788,5 @@ watch(isDark, () => {
   font-size: 12px;
   color: #8a90ad;
   text-align: right;
-}
-
-:deep(.node-tooltip-hint) {
-  /* padding: 6px 12px; */
-  background: transparent;
-  border: none;
-  border-radius: 14px;
-  font-weight: 600;
-  color: #4A5465;
-  font-size: 14px;
-  line-height: 1.4;
-  /* box-shadow: 0 8px 16px rgba(22, 119, 255, 0.15); */
-  white-space: nowrap;
-}
-
-:deep(.node-detail-tooltip) {
-  /* max-width: 320px; */
-  /* padding: 14px 16px; */
-  background: #fff;
-  border-radius: 14px;
-  /* box-shadow: 0 12px 32px rgba(31, 41, 79, 0.18); */
-  border: none;
-  color: #4A5465;
-  font-size: 14px;
-  line-height: 1.6;
-  white-space: normal;
-  word-break: break-word;
-  font-weight: 400;
-}
-
-:deep(.node-detail-tooltip__title) {
-  font-weight: 600;
-  color: #768496;
-  margin-bottom: 8px;
-  font-size: 14px;
-}
-
-:deep(.node-detail-tooltip__content p) {
-  margin: 0 0 6px;
-}
-
-:deep(.node-detail-tooltip__content p:last-child) {
-  margin-bottom: 0;
 }
 </style>
