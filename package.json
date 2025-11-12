@@ -13,6 +13,8 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "@antv/g": "^6.1.28",
+    "@antv/g6": "^5.0.50",
     "@vueuse/core": "^9.1.0",
     "axios": "^1.6.8",
     "element-plus": "^2.7.3",

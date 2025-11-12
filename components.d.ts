@@ -8,10 +8,10 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     BusinessAbility: typeof import('./src/components/llm-gen/BusinessAbility/index.vue')['default']
-    ElRadio: typeof import('element-plus/es')['ElRadio']
     ElRadioButton: typeof import('element-plus/es')['ElRadioButton']
     ElRadioGroup: typeof import('element-plus/es')['ElRadioGroup']
     ElSkeleton: typeof import('element-plus/es')['ElSkeleton']
+    FinancialMineChart: typeof import('./src/components/llm-gen/FinancialMineChart/index.vue')['default']
     GenModule: typeof import('./src/components/llm-gen/GenModule/index.vue')['default']
     Holder: typeof import('./src/components/llm-gen/Holder/index.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']

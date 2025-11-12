@@ -35,7 +35,7 @@ export const mockData = {
                     "features": [],
                     "output": [
                         {
-                            "name": "GenModule",
+                            "name": "FinancialMineChart",
                             "type": "llmgen",
                             "parameter": [
                                 {
