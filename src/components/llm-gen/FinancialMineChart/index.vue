@@ -1,27 +1,46 @@
 <template>
 
-  <div class="insight-canvas">      
-    <div class="insight-canvas__controls">
-      <button type="button" class="insight-canvas__control-button" @click="handleRefresh" aria-label="刷新图谱">
+  <div
+    class="relative border border-border-08 black:border-border-08-dark rounded-md shadow-[inset_0_4px_30px_rgba(88,108,158,0.12)]">
+    <!-- 左上角控制按钮 -->
+    <div class="absolute top-4 left-4 flex gap-2.5 z-10">
+      <button type="button"
+        class="w-7 h-7 rounded border border-border-08 black:border-border-03-dark 
+        bg-white black:bg-[#111A31] text-[#5261a7] black:text-text-02-01-dark text-base 
+        cursor-pointer transition-all hover:bg-[#e6edff] black:hover:bg-background-03-dark shadow"
+        @click="handleRefresh" aria-label="刷新图谱">
         ↻
       </button>
-      <button type="button" class="insight-canvas__control-button" @click="() => handleZoom(1.15)" aria-label="放大图谱">
+      <button type="button"
+        class="w-7 h-7 rounded border border-border-08 black:border-border-03-dark 
+        bg-white black:bg-[#111A31] text-[#5261a7] black:text-text-02-01-dark text-base 
+        cursor-pointer transition-all hover:bg-[#e6edff] black:hover:bg-background-03-dark shadow"
+        @click="() => handleZoom(1.15)" aria-label="放大图谱">
         +
       </button>
-      <button type="button" class="insight-canvas__control-button" @click="() => handleZoom(0.85)" aria-label="缩小图谱">
+      <button type="button"
+        class="w-7 h-7 rounded border border-border-08 black:border-border-03-dark 
+        bg-white black:bg-[#111A31] text-[#5261a7] black:text-text-02-01-dark text-base 
+        cursor-pointer transition-all hover:bg-[#e6edff] black:hover:bg-background-03-dark shadow"
+        @click="() => handleZoom(0.85)" aria-label="缩小图谱">
         -
       </button>
     </div>
-    <div class="insight-canvas__watermark">
+
+    <!-- 左下角水印 -->
+    <div
+      class="absolute left-[14px] bottom-[14px] text-[11px] text-[#9FA9B5] black:text-[#768496] pointer-events-none leading-[1.4] max-w-[260px] z-10">
       <p>· 数据取自董事会经营综述、研报和互动易</p>
       <p>· 内容由 AI 生成</p>
     </div>
+
     <div id="container"></div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useDark } from '@vueuse/core';
 import { Rect as GRect, Text as GText } from '@antv/g';
 import {
   Badge,
@@ -40,14 +59,65 @@ import {
 
 import data from './config.json';
 
+// 主题监听
+const isDark = useDark();
+
+// 主题配色方案
+const themeColors = computed(() => {
+  if (isDark.value) {
+    return {
+      // 节点
+      nodeFill: '#374152',           // background-16-dark
+      nodeBorder: '#60656C',         // border-01-dark
+      nodeText: '#F9FBFC',           // text-01-dark
+      nodeSecondaryText: '#BCC3CE',  // text-04-dark
+      // 边
+      edgeStroke: '#828FA1',         // border-01-dark
+      edgeLabelFill: '#F0F4F9',      // text-03-dark
+      // 标签
+      tagNormalBg: '#F0F4F91F',
+      tagNormalBorder: 'rgba(130, 143, 161, 0.2)',
+      tagNormalText: '#F0F4F9',
+      tagSpecialBg: '#FD20331F',
+      tagSpecialBorder: '#FF2436',
+      tagSpecialText: '#FD2033',
+      // 折叠按钮
+      collapseBg: '#1D273F',
+      collapseBorder: '#374152',
+      collapseFill: '#BCC3CE',
+    };
+  } else {
+    return {
+      // 节点
+      nodeFill: '#FFFFFF',           // background-00
+      nodeBorder: '#EBEDF0',         // border-01
+      nodeText: '#131B2A',           // text-01
+      nodeSecondaryText: '#768496',  // text-04
+      // 边
+      edgeStroke: '#828FA1',
+      edgeLabelFill: '#2A354E',
+      // 标签
+      tagNormalBg: '#7684961F',
+      tagNormalBorder: 'rgba(118, 132, 150, 0.12)',
+      tagNormalText: '#768496',
+      tagSpecialBg: '#FD20331F',
+      tagSpecialBorder: '#FF4D4F',
+      tagSpecialText: '#FD2033',
+      // 折叠按钮
+      collapseBg: '#FFFFFF',
+      collapseBorder: '#EBEDF0',
+      collapseFill: '#828FA1',
+    };
+  }
+});
+
 const style = document.createElement('style');
 style.innerHTML = `@import url('${iconfont.css}');`;
 document.head.appendChild(style);
 
-const GREY_COLOR = '#CED4D9';
-const TITLE_TAG_GAP = 8;
+const TITLE_TAG_GAP = 9;
 const TAG_HORIZONTAL_PADDING = 12;
-const TAG_VERTICAL_PADDING = 6;
+const TAG_VERTICAL_PADDING = 9;
 const TAG_MIN_WIDTH = 36;
 
 const COLLAPSED_SIZE: [number, number] = [288, 72];
@@ -223,12 +293,12 @@ class TreeNode extends Rect {
     const [width, height] = this.getSize(attributes);
     return {
       x: -width / 2 + 10,
-      y: -height / 2 + 20,
+      y: -height / 2 + 23,
       text: this.data.name,
       fontSize: 14,
       opacity: 0.85,
-      fill: '#000',
-      cursor: 'pointer',
+      fill: themeColors.value.nodeText,
+      // cursor: 'pointer',
       fontWeight: 600,
       wordWrap: false,
       wordWrapWidth: width - 20,
@@ -241,28 +311,28 @@ class TreeNode extends Rect {
     const [width, height] = this.getSize(attributes);
 
     // 展开状态：把营收&占比挪到灰色容器上方
-    if (attributes.expanded) {
-      const rectStyle: any = this.getDetailContainerRectStyle(attributes);
-      // rectStyle.y 是灰容器的 top，我们往上挪一点
-      const y = rectStyle ? rectStyle.y : -height / 2 + 36;
+    // if (attributes.expanded) {
+    //   const rectStyle: any = this.getDetailContainerRectStyle(attributes);
+    //   // rectStyle.y 是灰容器的 top，我们往上挪一点
+    //   const y = rectStyle ? rectStyle.y : -height / 2 + 36;
 
-      return {
-        x: -width / 2 + 8,
-        y,
-        text: this.data.label,
-        fontSize: 14,
-        fill: 'gray',
-        opacity: 0.85,
-      };
-    }
+    //   return {
+    //     x: -width / 2 + 8,
+    //     y,
+    //     text: this.data.label,
+    //     fontSize: 14,
+    //     fill: 'gray',
+    //     opacity: 0.85,
+    //   };
+    // }
 
     // 未展开：保持原来的位置在卡片底部
     return {
       x: -width / 2 + 8,
-      y: height / 2 - 8,
+      y: height / 2 - 12,
       text: this.data.label,
       fontSize: 14,
-      fill: 'gray',
+      fill: themeColors.value.nodeSecondaryText,
       opacity: 0.85,
     };
   }
@@ -277,14 +347,14 @@ class TreeNode extends Rect {
     const { collapsed } = attributes;
     const [width, height] = this.getSize(attributes);
     return {
-      backgroundFill: '#fff',
+      backgroundFill: themeColors.value.collapseBg,
       backgroundHeight: 16,
       backgroundLineWidth: 1,
       backgroundRadius: 0,
-      backgroundStroke: GREY_COLOR,
+      backgroundStroke: themeColors.value.collapseBorder,
       backgroundWidth: 16,
       cursor: 'pointer',
-      fill: GREY_COLOR,
+      fill: themeColors.value.collapseFill,
       fontSize: 16,
       text: collapsed ? '+' : '-',
       textAlign: 'center',
@@ -330,9 +400,9 @@ class TreeNode extends Rect {
     const keyStyle = super.getKeyStyle(attributes);
     return {
       ...keyStyle,
-      fill: '#fff',
+      fill: themeColors.value.nodeFill,
       lineWidth: 1,
-      stroke: GREY_COLOR,
+      stroke: themeColors.value.nodeBorder,
     };
   }
 
@@ -380,16 +450,16 @@ class TreeNode extends Rect {
     const isCoreCashCow = tagText === '核心现金牛';
 
     return {
-      backgroundFill: isCoreCashCow ? '#FD20331F' : '#7684961F',
-      backgroundStroke: isCoreCashCow ? '#FF4D4F' : '#7684961F',
-      backgroundRadius: 4,
+      backgroundFill: isCoreCashCow ? themeColors.value.tagSpecialBg : themeColors.value.tagNormalBg,
+      backgroundStroke: isCoreCashCow ? themeColors.value.tagSpecialBorder : themeColors.value.tagNormalBorder,
+      backgroundRadius: 2.8,
       backgroundWidth,
       backgroundHeight,
       x,
       y,
       text: tagText,
       fontSize: tagFontSize,
-      fill: isCoreCashCow ? '#FD2033' : '#768496',
+      fill: isCoreCashCow ? themeColors.value.tagSpecialText : themeColors.value.tagNormalText,
     };
   }
 
@@ -479,7 +549,7 @@ const initGraph = async () => {
     edge: {
       type: 'polyline',
       style: {
-        stroke: '#CED4D9',
+        stroke: themeColors.value.edgeStroke,
         lineWidth: 1,
         router: {
           type: 'orth',
@@ -490,7 +560,7 @@ const initGraph = async () => {
         // 标签样式配置
         // labelText: '',
         labelFontSize: 12,
-        labelFill: '#666',
+        labelFill: themeColors.value.edgeLabelFill,
         labelBackground: false,
         labelPadding: 0,
         labelOffsetX: -15,  // 向左偏移
@@ -602,12 +672,27 @@ onBeforeUnmount(() => {
   graphRef.value = null;
 });
 
+// 监听主题切换，重新初始化图谱
+watch(isDark, () => {
+  handleRefresh();
+});
+
 </script>
 
 <style scoped>
 #container {
   width: 100%;
   height: 520px;
+  border-radius: 16px;
+  background: #F2F5FA;
+  background-image: radial-gradient(#dbe1f5 1.5px, transparent 1px);
+  background-size: 26px 26px;
+}
+
+.dark #container {
+  background: #09101F;
+  background-image: radial-gradient(#3d4a64 1.5px, transparent 1px);
+  background-size: 26px 26px;
   border-radius: 16px;
 }
 
@@ -681,61 +766,6 @@ onBeforeUnmount(() => {
   transform: translateY(-1px);
 }
 
-.insight-canvas {
-  position: relative;
-  border-radius: 18px;
-  background: transparent;
-  border: 1px solid #E0E8F5;
-  box-shadow: inset 0 4px 30px rgba(88, 108, 158, 0.12);
-}
-
-.insight-canvas__controls {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  display: flex;
-  gap: 10px;
-  z-index: 2;
-}
-
-.insight-canvas__control-button {
-  width: 28px;
-  height: 28px;
-  border-radius: 4px;
-  border: 0.8px solid #EBEDF0;
-  background: #ffffff;
-  color: #5261a7;
-  font-size: 12x;
-  cursor: pointer;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  transition: all 0.2s ease;
-}
-
-.insight-canvas__control-button:hover {
-  background: #e6edff;
-  color: #2e48c7;
-}
-
-.insight-canvas__watermark {
-  position: absolute;
-  left: 14px;
-  bottom: 14px;
-  font-size: 11px;
-  color: #9FA9B5;
-  pointer-events: none;
-  line-height: 1.4;
-  max-width: 260px;
-  z-index: 2;
-}
-
-.insight-canvas #container {
-  width: 920px;
-  height: 520px;
-  background: #F2F5FA;
-  background-image: radial-gradient(#dbe1f5 1px, transparent 1px);
-  background-size: 26px 26px;
-  border-radius: 18px;
-}
 
 .insight-footer {
   font-size: 12px;
