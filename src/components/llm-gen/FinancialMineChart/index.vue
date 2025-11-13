@@ -121,7 +121,7 @@ const themeColors = computed(() => {
 });
 
 const COLLAPSE_EXPAND_ANIMATION = {
-  duration: 420,
+  duration: 400,
   easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
 };
 
@@ -181,7 +181,6 @@ const calculateNodeHeight = (label: string | undefined): number => {
   return Math.max(calculatedHeight, NODE_MIN_HEIGHT);
 };
 
-const BASE_HORIZONTAL_GAP = 40;
 const COLLAPSE_TARGET_NAME = 'collapse-button';
 const CLICK_TOOLTIP_KEY = 'node-click-tooltip';
 
@@ -764,27 +763,23 @@ const initGraph = async () => {
       },
     },
     layout: {
-      type: 'mindmap',
-      direction: 'LR',
-      getHeight: (node?: any) => {
-        if (!node || !graphInstance) return NODE_MIN_HEIGHT;
+      type: 'dagre',
+      rankdir: 'LR', // 从左到右布局
+      ranksep: 110, // 层间距（LR 方向时是水平方向相邻层间距）
+      nodesep: 8, // 节点间距（LR 方向时是竖直方向间距）
+      // 动态计算节点大小，根据 label 内容计算高度
+      nodeSize: (node: any) => {
+        if (!node || !graphInstance) return [NODE_WIDTH, NODE_MIN_HEIGHT];
         const nodeId = typeof node === 'string' ? node : node.id ?? node.data?.id;
-        if (!nodeId) return NODE_MIN_HEIGHT;
+        if (!nodeId) return [NODE_WIDTH, NODE_MIN_HEIGHT];
         try {
           const nodeData = graphInstance.getNodeData(nodeId);
-          return calculateNodeHeight(nodeData?.label);
+          const nodeHeight = calculateNodeHeight(nodeData?.label);
+          return [NODE_WIDTH, nodeHeight];
         } catch (e) {
-          return NODE_MIN_HEIGHT;
+          return [NODE_WIDTH, NODE_MIN_HEIGHT];
         }
       },
-      getWidth: () => {
-        return NODE_WIDTH;
-      },
-      getVGap: () => {
-        // 使用固定的垂直间距
-        return 4;
-      },
-      getHGap: () => BASE_HORIZONTAL_GAP,
     },
     plugins: [
       function () {
