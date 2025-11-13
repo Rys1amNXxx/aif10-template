@@ -1,7 +1,7 @@
 <template>
 
   <div
-    class="relative border border-border-08 black:border-border-08-dark rounded-md shadow-[inset_0_4px_30px_rgba(88,108,158,0.12)]">
+    class="relative border border-border-08 black:border-border-08-dark rounded-2xl shadow-[inset_0_4px_30px_rgba(88,108,158,0.12)]">
     <!-- 左上角控制按钮 -->
     <div class="absolute top-3 left-3 flex gap-2 z-10">
       <button type="button"
