@@ -41,7 +41,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useDark } from '@vueuse/core';
-import { Line as GLine, Rect as GRect, Text as GText } from '@antv/g';
+import { Circle as GCircle, HTML as GHTML, Line as GLine, Rect as GRect, Text as GText } from '@antv/g';
 import ResetIcon from '@/components/icons/Reset.vue';
 import ZoomInIcon from '@/components/icons/zoomIn.vue';
 import ZoomOutIcon from '@/components/icons/zoomOut.vue';
@@ -88,6 +88,9 @@ const themeColors = computed(() => {
       collapseBg: '#1D273F',
       collapseBorder: '#374152',
       collapseFill: '#BCC3CE',
+      // 详情图标
+      detailIconStroke: '#BCC3CE',
+      detailIconFill: '#BCC3CE',
     };
   } else {
     return {
@@ -110,6 +113,9 @@ const themeColors = computed(() => {
       collapseBg: '#FFFFFF',
       collapseBorder: '#EBEDF0',
       collapseFill: '#828FA1',
+      // 详情图标
+      detailIconStroke: '#5261A7',
+      detailIconFill: '#5261A7',
     };
   }
 });
@@ -127,12 +133,14 @@ const TITLE_TAG_GAP = 9;
 const TAG_HORIZONTAL_PADDING = 12;
 const TAG_VERTICAL_PADDING = 9;
 const TAG_MIN_WIDTH = 36;
+const DETAIL_ICON_SIZE = 14;
+const DETAIL_ICON_GAP = 6;
+const DETAIL_TRIGGER_NAME = 'detail-trigger';
 
 const COLLAPSED_SIZE: [number, number] = [288, 72];
 const EXPANDED_SIZE: [number, number] = [288, 180];
 const BASE_HORIZONTAL_GAP = 35;
 const COLLAPSE_TARGET_NAME = 'collapse-button';
-const HOVER_TOOLTIP_KEY = 'node-hover-tooltip';
 const CLICK_TOOLTIP_KEY = 'node-click-tooltip';
 
 const escapeHtml = (raw: string) =>
@@ -185,6 +193,32 @@ const isCollapseTarget = (event: any) => {
   return false;
 };
 
+const isDetailTrigger = (event: any) => {
+  const checkShape = (shape: any): boolean => {
+    if (!shape) return false;
+    const namesToCheck = [
+      shape?.name,
+      shape?.cfg?.name,
+      shape?.attributes?.name,
+      typeof shape.get === 'function' ? shape.get('name') : undefined,
+      typeof shape.getAttribute === 'function' ? shape.getAttribute('name') : undefined,
+    ];
+    if (namesToCheck.some((name) => name === DETAIL_TRIGGER_NAME)) return true;
+    return checkShape(shape.parent);
+  };
+
+  const target = event?.target ?? event?.shape ?? event?.detail?.shape;
+  if (checkShape(target)) return true;
+
+  const originalTarget = event?.originalEvent?.target;
+  if (checkShape(originalTarget)) return true;
+
+  const domEventTarget = event?.originalEvent?.originalEvent?.target;
+  if (checkShape(domEventTarget)) return true;
+
+  return false;
+};
+
 const getDetailFromItems = (items: any[] | undefined, graph?: Graph) => {
   if (!items || items.length === 0) return undefined;
   const item = items[0];
@@ -203,7 +237,7 @@ const getDetailFromItems = (items: any[] | undefined, graph?: Graph) => {
 };
 
 const getEventDetail = (event: any, graph?: Graph) => {
-  if (isCollapseTarget(event)) return undefined;
+  if (isCollapseTarget(event) || !isDetailTrigger(event)) return undefined;
   const item = event?.item ?? event?.target ?? event?.items?.[0];
   const data = getItemData(item);
   if (data?.detail) return data.detail;
@@ -227,42 +261,10 @@ const getEventDetail = (event: any, graph?: Graph) => {
   return undefined;
 };
 
-function createHoverTooltipPlugin(this: Graph) {
-  const dark = isDark.value;
-  const graph = this;
-  return {
-    key: HOVER_TOOLTIP_KEY,
-    type: 'tooltip' as const,
-    trigger: 'hover' as const,
-    itemTypes: ['node'],
-    style: {
-      '.tooltip': {
-        background: dark ? '#4A5465' : '#FFFFFF',
-        border: dark ? '1px solid #374152' : '#EBEDF0',
-      },
-    },
-    enable(event: any) {
-      if (isCollapseTarget(event)) return false;
-      const detail = getEventDetail(event, graph);
-      if (!detail) return false;
-      const clickTooltip = graph.getPluginInstance(CLICK_TOOLTIP_KEY) as any;
-      const currentTarget = event?.item?.id ?? event?.target?.id ?? event?.currentTarget;
-      if (clickTooltip && clickTooltip.currentTarget === currentTarget) {
-        return false;
-      }
-      return true;
-    },
-    getContent: (evt: any) => {
-      if (isCollapseTarget(evt)) return '';
-      const textColor = dark ? '#F0F4F9' : '#4A5465';
-      return `<div style="font-size: 12px; font-weight: 400; color: ${textColor}; white-space: nowrap;">点击查看详细信息</div>`;
-    },
-  };
-}
-
 function createClickTooltipPlugin(this: Graph) {
   const dark = isDark.value;
   const graph = this;
+
   return {
     key: CLICK_TOOLTIP_KEY,
     type: 'tooltip' as const,
@@ -276,30 +278,41 @@ function createClickTooltipPlugin(this: Graph) {
     },
     enable(event: any) {
       if (isCollapseTarget(event)) return false;
-      return Boolean(getEventDetail(event, graph));
+      if (event?.detailTrigger) return true;
+      return isDetailTrigger(event) && Boolean(getEventDetail(event, graph));
     },
     getContent: (evt: any, items: any[]) => {
-      if (isCollapseTarget(evt)) return '';
-      const detail = getDetailFromItems(items, graph);
+      const nodeId =
+        evt?.data?.id ??
+        evt?.target?.id ??
+        items?.[0]?.id ??
+        items?.[0]?.model?.id ??
+        evt?.item?.id ??
+        evt?.item?.model?.id;
+
+      if (!nodeId) return '';
+
+      let detail = null;
+      try {
+        const nodeData = graph.getNodeData(nodeId);
+        detail = nodeData?.detail;
+      } catch (e) {
+        return '';
+      }
+
       if (!detail) return '';
 
-      // const dark = isDark.value;
       const textColor = dark ? '#F0F4F9' : '#4A5465';
       const titleColor = dark ? '#BCC3CE' : '#768496';
 
       return `
         <div style="max-width: 360px; background: transparent; border: transparent; border-radius: 12px; font-size: 14px; line-height: 1.6; color: ${textColor}">
-          <div style="font-size: 16px; font-weight: 600; color: ${titleColor}; margin-bottom: 8px;">节点描述</div>
+          <div style="font-size: 14px; font-weight: 600; color: ${titleColor}; margin-bottom: 8px;">节点描述</div>
           <div>${formatDetailToHtml(detail)}</div>
         </div>
       `;
     },
-    onOpenChange(open: boolean) {
-      if (open) {
-        const hoverTooltip = graph.getPluginInstance(HOVER_TOOLTIP_KEY) as any;
-        hoverTooltip?.hide?.();
-      }
-    },
+    onOpenChange() { },
   };
 }
 
@@ -319,17 +332,20 @@ class TreeNode extends Rect {
 
   getLabelStyle(attributes) {
     const [width, height] = this.getSize(attributes);
+    const basePadding = 12;
+    const iconOffset = DETAIL_ICON_SIZE + DETAIL_ICON_GAP;
+    const availableWidth = width - (basePadding + iconOffset) - 20;
     return {
-      x: -width / 2 + 18,
+      x: -width / 2 + basePadding + iconOffset,
       y: -height / 2 + 23,
       text: this.data.name,
       fontSize: 14,
       opacity: 0.85,
       fill: themeColors.value.nodeText,
-      // cursor: 'pointer',
+      cursor: 'pointer',
       fontWeight: 600,
       wordWrap: false,
-      wordWrapWidth: width - 20,
+      wordWrapWidth: availableWidth > 0 ? availableWidth : width - 20,
       maxLines: 1,
       textOverflow: 'clip',
     };
@@ -370,6 +386,191 @@ class TreeNode extends Rect {
     this.upsert('price', GText, priceStyle, container);
   }
 
+  setDetailInteractive(shape: any) {
+    if (!shape) return;
+    if (typeof shape.attr === 'function') {
+      shape.attr({ name: DETAIL_TRIGGER_NAME, cursor: 'pointer' });
+    } else {
+      shape.setAttribute?.('name', DETAIL_TRIGGER_NAME);
+      shape.setAttribute?.('cursor', 'pointer');
+    }
+  }
+
+  markDetailTrigger() {
+    // 在节点元素本身监听点击事件，通过坐标判断是否点击了标题区域
+    if (!Reflect.has(this, '__node_detail_bind__')) {
+      Reflect.set(this, '__node_detail_bind__', true);
+
+      const handleNodeClick = (event: any) => {
+        // 检查是否是详情图标（通过 isDetailTrigger）
+        if (isDetailTrigger(event)) {
+          event.stopPropagation();
+          event.stopImmediatePropagation?.();
+          const graph = this.context.graph;
+
+          // 获取节点数据
+          const nodeData = graph.getNodeData(this.id);
+          if (!nodeData?.detail) return;
+
+          // 获取 tooltip 插件并显示
+          const clickTooltip = graph.getPluginInstance(CLICK_TOOLTIP_KEY) as any;
+          if (clickTooltip && typeof clickTooltip.show === 'function') {
+            const clientX = event.client?.x ?? event.clientX ?? 0;
+            const clientY = event.client?.y ?? event.clientY ?? 0;
+            clickTooltip.hide?.();
+            clickTooltip.show({
+              detailTrigger: true,
+              target: { id: this.id, type: 'node' },
+              targetType: 'node',
+              itemType: 'node',
+              item: { id: this.id },
+              data: { id: this.id },
+              client: { x: clientX, y: clientY },
+              clientX,
+              clientY,
+            });
+          }
+          return;
+        }
+
+        // 检查是否点击了标题文本区域
+        // 由于 G6 的 Text 元素点击事件可能不可靠，我们通过排除法来判断
+        // 如果点击的不是折叠按钮，不是详情图标（已处理），且节点有 detail，就认为是点击了标题区域
+        const labelShape: any = this.getLabelTextShape();
+        if (!labelShape) return;
+
+        // 检查是否是折叠按钮区域
+        if (isCollapseTarget(event)) return;
+
+        // 获取点击坐标
+        const clientX = event.client?.x ?? event.clientX ?? 0;
+        const clientY = event.client?.y ?? event.clientY ?? 0;
+
+        event.stopPropagation();
+        event.stopImmediatePropagation?.();
+        const graph = this.context.graph;
+
+        // 获取节点数据
+        const nodeData = graph.getNodeData(this.id);
+        if (!nodeData?.detail) return;
+
+        // 获取 tooltip 插件并显示
+        const clickTooltip = graph.getPluginInstance(CLICK_TOOLTIP_KEY) as any;
+        if (clickTooltip && typeof clickTooltip.show === 'function') {
+          clickTooltip.hide?.();
+          clickTooltip.show({
+            detailTrigger: true,
+            target: { id: this.id, type: 'node' },
+            targetType: 'node',
+            itemType: 'node',
+            item: { id: this.id },
+            data: { id: this.id },
+            client: { x: clientX, y: clientY },
+            clientX,
+            clientY,
+          });
+        }
+      };
+
+      // 在节点元素本身监听点击事件
+      this.addEventListener(CommonEvent.CLICK, handleNodeClick);
+    }
+
+    // 使用 setTimeout 确保标签文本已经创建，设置交互属性
+    setTimeout(() => {
+      const labelShape: any = this.getLabelTextShape();
+      if (labelShape) {
+        this.setDetailInteractive(labelShape);
+      }
+    }, 0);
+  }
+
+  drawDetailIcon(attributes, container) {
+    const labelStyle: any = this.getLabelStyle(attributes);
+    if (!labelStyle) return;
+
+    const iconLeft = labelStyle.x - DETAIL_ICON_GAP - DETAIL_ICON_SIZE;
+    const iconTop = labelStyle.y - 8.5;
+    const color = themeColors.value.detailIconStroke;
+
+    // 使用 HTML 元素来渲染 SVG
+    const svgString = `
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; cursor: pointer;">
+        <path
+          d="M12.6667 1.33337H3.33341C2.96522 1.33337 2.66675 1.63185 2.66675 2.00004V14C2.66675 14.3682 2.96522 14.6667 3.33341 14.6667H12.6667C13.0349 14.6667 13.3334 14.3682 13.3334 14V2.00004C13.3334 1.63185 13.0349 1.33337 12.6667 1.33337Z"
+          stroke="${color}" stroke-width="1.33333" stroke-linejoin="round" />
+        <path d="M7 4.66663H11" stroke="${color}" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M7 8H11" stroke="${color}" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M7 11.3334H11" stroke="${color}" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round" />
+        <path fill-rule="evenodd" clip-rule="evenodd"
+          d="M4.99992 5.33333C5.36812 5.33333 5.66659 5.03487 5.66659 4.66667C5.66659 4.29847 5.36812 4 4.99992 4C4.63172 4 4.33325 4.29847 4.33325 4.66667C4.33325 5.03487 4.63172 5.33333 4.99992 5.33333Z"
+          fill="${color}" />
+        <path fill-rule="evenodd" clip-rule="evenodd"
+          d="M4.99992 8.66671C5.36812 8.66671 5.66659 8.36824 5.66659 8.00004C5.66659 7.63184 5.36812 7.33337 4.99992 7.33337C4.63172 7.33337 4.33325 7.63184 4.33325 8.00004C4.33325 8.36824 4.63172 8.66671 4.99992 8.66671Z"
+          fill="${color}" />
+        <path fill-rule="evenodd" clip-rule="evenodd"
+          d="M4.99992 12C5.36812 12 5.66659 11.7015 5.66659 11.3333C5.66659 10.9651 5.36812 10.6666 4.99992 10.6666C4.63172 10.6666 4.33325 10.9651 4.33325 11.3333C4.33325 11.7015 4.63172 12 4.99992 12Z"
+          fill="${color}" />
+      </svg>
+    `;
+
+    const iconShape = this.upsert(
+      'detail-icon',
+      GHTML,
+      {
+        x: iconLeft,
+        y: iconTop,
+        width: DETAIL_ICON_SIZE,
+        height: DETAIL_ICON_SIZE,
+        innerHTML: svgString,
+        cursor: 'pointer',
+        pointerEvents: 'auto',
+        name: DETAIL_TRIGGER_NAME,
+      } as any,
+      container,
+    );
+
+    // 为 HTML 元素添加点击事件
+    if (iconShape && !Reflect.has(iconShape, '__detail_bind__')) {
+      Reflect.set(iconShape, '__detail_bind__', true);
+
+      // 等待 DOM 元素渲染后绑定事件
+      setTimeout(() => {
+        const domElement = iconShape.getDomElement?.();
+        if (domElement) {
+          domElement.style.cursor = 'pointer';
+          domElement.addEventListener('click', (event: MouseEvent) => {
+            event.stopPropagation();
+            event.preventDefault();
+            const graph = this.context.graph;
+
+            // 获取节点数据
+            const nodeData = graph.getNodeData(this.id);
+            if (!nodeData?.detail) return;
+
+            // 获取 tooltip 插件并显示
+            const clickTooltip = graph.getPluginInstance(CLICK_TOOLTIP_KEY) as any;
+            if (clickTooltip && typeof clickTooltip.show === 'function') {
+              // 使用鼠标的实际坐标
+              clickTooltip.hide?.();
+              clickTooltip.show({
+                detailTrigger: true,
+                target: { id: this.id, type: 'node' },
+                targetType: 'node',
+                itemType: 'node',
+                item: { id: this.id },
+                data: { id: this.id },
+                client: { x: event.clientX, y: event.clientY },
+                clientX: event.clientX,
+                clientY: event.clientY,
+              });
+            }
+          });
+        }
+      }, 0);
+    }
+  }
+
   getCollapseStyle(attributes) {
     if (this.childrenData.length === 0) return false;
     const { collapsed } = attributes;
@@ -382,6 +583,7 @@ class TreeNode extends Rect {
       backgroundStroke: themeColors.value.collapseBorder,
       backgroundWidth: 18,
       cursor: 'pointer',
+      // text: '',
       x: width / 2 + 10,
       y: 0,
       name: COLLAPSE_TARGET_NAME,
@@ -542,6 +744,8 @@ class TreeNode extends Rect {
 
   render(attributes = this.parsedAttributes, container) {
     super.render(attributes, container);
+    this.markDetailTrigger();
+    this.drawDetailIcon(attributes, container);
     this.drawTagShape(attributes, container);
     this.drawPriceShape(attributes, container);
     this.drawCollapseShape(attributes, container);
@@ -676,9 +880,6 @@ const initGraph = async () => {
       function () {
         return createClickTooltipPlugin.call(this);
       },
-      function () {
-        return createHoverTooltipPlugin.call(this);
-      },
     ],
     behaviors: ['zoom-canvas', 'drag-canvas'],
   });
@@ -691,11 +892,6 @@ const initGraph = async () => {
     clickTooltip?.hide?.();
   };
 
-  const hideHoverTooltip = () => {
-    const hoverTooltip = graph.getPluginInstance(HOVER_TOOLTIP_KEY) as any;
-    hoverTooltip?.hide?.();
-  };
-
   graph.once(GraphEvent.AFTER_RENDER, () => {
     graph.fitView();
   });
@@ -706,13 +902,11 @@ const initGraph = async () => {
     if (isCollapseTarget(sourceEvent)) {
       evt?.preventDefault?.();
       hideClickTooltip();
-      hideHoverTooltip();
     }
   });
 
   graph.on('canvas:click', () => {
     hideClickTooltip();
-    hideHoverTooltip();
   });
 
   graph.render();
