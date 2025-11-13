@@ -136,7 +136,51 @@ const DETAIL_ICON_SIZE = 14;
 const DETAIL_ICON_GAP = 3.5;
 const DETAIL_TRIGGER_NAME = 'detail-trigger';
 
-const NODE_SIZE: [number, number] = [290, 72];
+const NODE_WIDTH = 290;
+const NODE_MIN_HEIGHT = 72;
+const LABEL_FONT_SIZE = 14;
+const LABEL_LINE_HEIGHT = 20;
+const LABEL_BOTTOM_MARGIN = 10;
+const TITLE_LABEL_GAP = 8;
+const LABEL_LEFT_PADDING = 26;
+const LABEL_RIGHT_PADDING = 10;
+const TITLE_AREA_HEIGHT = 32; 
+
+// 计算文本换行后的行数
+const calculateTextLines = (text: string, maxWidth: number, fontSize: number): number => {
+  if (!text) return 1;
+  const availableWidth = maxWidth - LABEL_LEFT_PADDING - LABEL_RIGHT_PADDING;
+  let lines = 1;
+  let currentWidth = 0;
+
+  for (const char of text) {
+    const code = char.charCodeAt(0);
+    const charWidth = (code > 255) ? fontSize : fontSize * 0.6; // 中文字符按字体大小，英文字符按0.6倍
+
+    if (currentWidth + charWidth > availableWidth && currentWidth > 0) {
+      lines++;
+      currentWidth = charWidth;
+    } else {
+      currentWidth += charWidth;
+    }
+  }
+
+  return lines;
+};
+
+// 计算节点高度（基于 label 内容）
+const calculateNodeHeight = (label: string | undefined): number => {
+  if (!label) return NODE_MIN_HEIGHT;
+
+  const labelWidth = NODE_WIDTH;
+  const labelLines = calculateTextLines(String(label), labelWidth, LABEL_FONT_SIZE);
+
+  // 基础高度 = 标题区域 + label区域(行数 * 行高) + 底部间距
+  const labelAreaHeight = labelLines * LABEL_LINE_HEIGHT;
+  const calculatedHeight = TITLE_AREA_HEIGHT + TITLE_LABEL_GAP + labelAreaHeight + LABEL_BOTTOM_MARGIN;
+  return Math.max(calculatedHeight, NODE_MIN_HEIGHT);
+};
+
 const BASE_HORIZONTAL_GAP = 40;
 const COLLAPSE_TARGET_NAME = 'collapse-button';
 const CLICK_TOOLTIP_KEY = 'node-click-tooltip';
@@ -320,7 +364,10 @@ let globalGraphInstance: Graph | null = null;
 
 // 生成节点 HTML 内容的函数
 const generateNodeHTML = (nodeData: any, isExpanded: boolean, hasChildren: boolean) => {
-  const [width, height] = NODE_SIZE;
+
+  // 根据 label 内容动态计算节点高度
+  const width = NODE_WIDTH;
+  const height = calculateNodeHeight(nodeData.label);
   const colors = themeColors.value;
   const basePadding = 10;
   const iconOffset = DETAIL_ICON_SIZE + DETAIL_ICON_GAP;
@@ -423,13 +470,19 @@ const generateNodeHTML = (nodeData: any, isExpanded: boolean, hasChildren: boole
 
   // 价格标签
   const priceText = escapeHtml(String(nodeData.label || ''));
+  const labelWidth = width - LABEL_LEFT_PADDING - LABEL_RIGHT_PADDING;
+
   const priceStyle = `
     position: absolute;
-    left: ${basePadding + 16}px;
-    bottom: ${10}px;
-    font-size: 14px;
+    left: ${LABEL_LEFT_PADDING}px;
+    bottom: ${LABEL_BOTTOM_MARGIN}px;
+    width: ${labelWidth}px;
+    font-size: ${LABEL_FONT_SIZE}px;
+    line-height: ${LABEL_LINE_HEIGHT}px;
     color: ${colors.nodeSecondaryText};
     opacity: 0.85;
+    word-wrap: break-word;
+    word-break: break-all;
   `;
 
   // 折叠按钮（如果有子节点）
@@ -611,13 +664,16 @@ const initGraph = async () => {
     data: treeToGraphData(data, {
       getNodeData: (datum, depth) => {
         if (!datum.style) datum.style = {};
-        datum.style.size = [...NODE_SIZE];
+
+        // 根据 label 内容动态计算节点高度
+        const nodeHeight = calculateNodeHeight(datum.label);
+        datum.style.size = [NODE_WIDTH, nodeHeight];
+
         // 只在第4层及以后才默认折叠，让前三层都能正常显示
         datum.style.collapsed = depth >= 5;
         if (typeof datum.style.expanded === 'undefined') {
           datum.style.expanded = false;
         }
-        // datum.style.size = COLLAPSED_SIZE;
         if (!datum.children) return datum;
         const { children, ...restDatum } = datum;
         return { ...restDatum, children: children.map((child) => child.id) };
@@ -645,7 +701,12 @@ const initGraph = async () => {
     node: {
       type: 'html',
       style: {
-        size: [...NODE_SIZE],
+        size: (d: any) => {
+          const nodeId = d.id;
+          const nodeData = graphInstance?.getNodeData(nodeId) || d.data || d;
+          const nodeHeight = calculateNodeHeight(nodeData.label);
+          return [NODE_WIDTH, nodeHeight];
+        },
         innerHTML: (d: any) => {
           const nodeId = d.id;
           const nodeData = graphInstance?.getNodeData(nodeId) || d.data || d;
@@ -654,12 +715,13 @@ const initGraph = async () => {
           return generateNodeHTML(nodeData, isExpanded, hasChildren);
         },
         dx: () => {
-          const [width] = NODE_SIZE;
-          return -width / 2;
+          return -NODE_WIDTH / 2;
         },
-        dy: () => {
-          const [, height] = NODE_SIZE;
-          return -height / 2;
+        dy: (d: any) => {
+          const nodeId = d.id;
+          const nodeData = graphInstance?.getNodeData(nodeId) || d.data || d;
+          const nodeHeight = calculateNodeHeight(nodeData.label);
+          return -nodeHeight / 2;
         },
         // 配置连接点：从右端中间位置延出
         ports: [
@@ -698,11 +760,19 @@ const initGraph = async () => {
     layout: {
       type: 'mindmap',
       direction: 'LR',
-      getHeight: () => {
-        return NODE_SIZE[1];
+      getHeight: (node?: any) => {
+        if (!node || !graphInstance) return NODE_MIN_HEIGHT;
+        const nodeId = typeof node === 'string' ? node : node.id ?? node.data?.id;
+        if (!nodeId) return NODE_MIN_HEIGHT;
+        try {
+          const nodeData = graphInstance.getNodeData(nodeId);
+          return calculateNodeHeight(nodeData?.label);
+        } catch (e) {
+          return NODE_MIN_HEIGHT;
+        }
       },
       getWidth: () => {
-        return NODE_SIZE[0];
+        return NODE_WIDTH;
       },
       getVGap: () => {
         // 使用固定的垂直间距
