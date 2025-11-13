@@ -129,17 +129,15 @@ const style = document.createElement('style');
 style.innerHTML = `@import url('${iconfont.css}');`;
 document.head.appendChild(style);
 
-const TITLE_TAG_GAP = 9;
+const TITLE_TAG_GAP = 6;
 const TAG_HORIZONTAL_PADDING = 12;
 const TAG_VERTICAL_PADDING = 9;
-const TAG_MIN_WIDTH = 36;
 const DETAIL_ICON_SIZE = 14;
-const DETAIL_ICON_GAP = 6;
+const DETAIL_ICON_GAP = 3.5;
 const DETAIL_TRIGGER_NAME = 'detail-trigger';
 
-const COLLAPSED_SIZE: [number, number] = [288, 72];
-const EXPANDED_SIZE: [number, number] = [288, 180];
-const BASE_HORIZONTAL_GAP = 35;
+const NODE_SIZE: [number, number] = [290, 72]; // 统一使用固定尺寸
+const BASE_HORIZONTAL_GAP = 40;
 const COLLAPSE_TARGET_NAME = 'collapse-button';
 const CLICK_TOOLTIP_KEY = 'node-click-tooltip';
 
@@ -272,8 +270,8 @@ function createClickTooltipPlugin(this: Graph) {
     itemTypes: ['node'],
     style: {
       ".tooltip": {
-        background: dark ? '#4A5465' : '#FFFFFF',
-        border: dark ? '1px solid #374152' : '#EBEDF0',
+        background: '#000000D9',
+        border: 'none',
       },
     },
     enable(event: any) {
@@ -302,8 +300,8 @@ function createClickTooltipPlugin(this: Graph) {
 
       if (!detail) return '';
 
-      const textColor = dark ? '#F0F4F9' : '#4A5465';
-      const titleColor = dark ? '#BCC3CE' : '#768496';
+      const textColor = '#FFFFFF';
+      const titleColor = '#FFFFFF';
 
       return `
         <div style="max-width: 360px; background: transparent; border: transparent; border-radius: 12px; font-size: 14px; line-height: 1.6; color: ${textColor}">
@@ -316,443 +314,274 @@ function createClickTooltipPlugin(this: Graph) {
   };
 }
 
-class TreeNode extends Rect {
-  get data() {
-    return this.context.model.getNodeLikeDatum(this.id);
-  }
 
-  get childrenData() {
-    return this.context.model.getChildrenData(this.id);
-  }
+// 全局变量存储 graph 实例引用（用于事件处理函数）
+let globalGraphInstance: Graph | null = null;
 
-  getSize(attributes) {
-    const expanded = attributes.expanded ?? false;
-    return expanded ? EXPANDED_SIZE : COLLAPSED_SIZE;
-  }
+// 生成节点 HTML 内容的函数
+const generateNodeHTML = (nodeData: any, isExpanded: boolean, hasChildren: boolean) => {
+  const [width, height] = NODE_SIZE; // 统一使用固定尺寸
+  const colors = themeColors.value;
+  const basePadding = 10;
+  const iconOffset = DETAIL_ICON_SIZE + DETAIL_ICON_GAP;
+  const availableWidth = width - (basePadding + iconOffset) - 20;
 
-  getLabelStyle(attributes) {
-    const [width, height] = this.getSize(attributes);
-    const basePadding = 12;
-    const iconOffset = DETAIL_ICON_SIZE + DETAIL_ICON_GAP;
-    const availableWidth = width - (basePadding + iconOffset) - 20;
-    return {
-      x: -width / 2 + basePadding + iconOffset,
-      y: -height / 2 + 23,
-      text: this.data.name,
-      fontSize: 14,
-      opacity: 0.85,
-      fill: themeColors.value.nodeText,
-      cursor: 'pointer',
-      fontWeight: 600,
-      wordWrap: false,
-      wordWrapWidth: availableWidth > 0 ? availableWidth : width - 20,
-      maxLines: 1,
-      textOverflow: 'clip',
-    };
-  }
+  // 标题文本
+  const titleText = escapeHtml(String(nodeData.name || ''));
+  const titleLeft = basePadding + iconOffset;
+  const titleTop = 12;
+  const titleStyle = `
+    position: absolute;
+    left: ${titleLeft}px;
+    top: ${titleTop}px;
+    font-size: 14px;
+    font-weight: 600;
+    color: ${colors.nodeText};
+    opacity: 0.85;
+    cursor: pointer;
+    max-width: ${availableWidth}px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 20px;
+  `;
 
-  getPriceStyle(attributes) {
-    const [width, height] = this.getSize(attributes);
+  // 详情图标 SVG
+  const detailIconSVG = `
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; cursor: pointer;">
+      <path
+        d="M12.6667 1.33337H3.33341C2.96522 1.33337 2.66675 1.63185 2.66675 2.00004V14C2.66675 14.3682 2.96522 14.6667 3.33341 14.6667H12.6667C13.0349 14.6667 13.3334 14.3682 13.3334 14V2.00004C13.3334 1.63185 13.0349 1.33337 12.6667 1.33337Z"
+        stroke="${colors.detailIconStroke}" stroke-width="1.33333" stroke-linejoin="round" />
+      <path d="M7 4.66663H11" stroke="${colors.detailIconStroke}" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M7 8H11" stroke="${colors.detailIconStroke}" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M7 11.3334H11" stroke="${colors.detailIconStroke}" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round" />
+      <path fill-rule="evenodd" clip-rule="evenodd"
+        d="M4.99992 5.33333C5.36812 5.33333 5.66659 5.03487 5.66659 4.66667C5.66659 4.29847 5.36812 4 4.99992 4C4.63172 4 4.33325 4.29847 4.33325 4.66667C4.33325 5.03487 4.63172 5.33333 4.99992 5.33333Z"
+        fill="${colors.detailIconStroke}" />
+      <path fill-rule="evenodd" clip-rule="evenodd"
+        d="M4.99992 8.66671C5.36812 8.66671 5.66659 8.36824 5.66659 8.00004C5.66659 7.63184 5.36812 7.33337 4.99992 7.33337C4.63172 7.33337 4.33325 7.63184 4.33325 8.00004C4.33325 8.36824 4.63172 8.66671 4.99992 8.66671Z"
+        fill="${colors.detailIconStroke}" />
+      <path fill-rule="evenodd" clip-rule="evenodd"
+        d="M4.99992 12C5.36812 12 5.66659 11.7015 5.66659 11.3333C5.66659 10.9651 5.36812 10.6666 4.99992 10.6666C4.63172 10.6666 4.33325 10.9651 4.33325 11.3333C4.33325 11.7015 4.63172 12 4.99992 12Z"
+        fill="${colors.detailIconStroke}" />
+    </svg>
+  `;
 
-    // 展开状态：把营收&占比挪到灰色容器上方
-    // if (attributes.expanded) {
-    //   const rectStyle: any = this.getDetailContainerRectStyle(attributes);
-    //   // rectStyle.y 是灰容器的 top，我们往上挪一点
-    //   const y = rectStyle ? rectStyle.y : -height / 2 + 36;
+  // 详情图标（和标题垂直居中对齐）
+  const detailIconStyle = `
+    position: absolute;
+    left: ${basePadding}px;
+    top: ${titleTop + 2}px;
+    width: ${DETAIL_ICON_SIZE}px;
+    height: ${DETAIL_ICON_SIZE}px;
+    cursor: pointer;
+  `;
 
-    //   return {
-    //     x: -width / 2 + 8,
-    //     y,
-    //     text: this.data.label,
-    //     fontSize: 14,
-    //     fill: 'gray',
-    //     opacity: 0.85,
-    //   };
-    // }
-
-    // 未展开：保持原来的位置在卡片底部
-    return {
-      x: -width / 2 + 18,
-      y: height / 2 - 12,
-      text: this.data.label,
-      fontSize: 14,
-      fill: themeColors.value.nodeSecondaryText,
-      opacity: 0.85,
-    };
-  }
-
-  drawPriceShape(attributes, container) {
-    const priceStyle = this.getPriceStyle(attributes);
-    this.upsert('price', GText, priceStyle, container);
-  }
-
-  setDetailInteractive(shape: any) {
-    if (!shape) return;
-    if (typeof shape.attr === 'function') {
-      shape.attr({ name: DETAIL_TRIGGER_NAME, cursor: 'pointer' });
-    } else {
-      shape.setAttribute?.('name', DETAIL_TRIGGER_NAME);
-      shape.setAttribute?.('cursor', 'pointer');
-    }
-  }
-
-  markDetailTrigger() {
-    // 在节点元素本身监听点击事件，通过坐标判断是否点击了标题区域
-    if (!Reflect.has(this, '__node_detail_bind__')) {
-      Reflect.set(this, '__node_detail_bind__', true);
-
-      const handleNodeClick = (event: any) => {
-        // 检查是否是详情图标（通过 isDetailTrigger）
-        if (isDetailTrigger(event)) {
-          event.stopPropagation();
-          event.stopImmediatePropagation?.();
-          const graph = this.context.graph;
-
-          // 获取节点数据
-          const nodeData = graph.getNodeData(this.id);
-          if (!nodeData?.detail) return;
-
-          // 获取 tooltip 插件并显示
-          const clickTooltip = graph.getPluginInstance(CLICK_TOOLTIP_KEY) as any;
-          if (clickTooltip && typeof clickTooltip.show === 'function') {
-            const clientX = event.client?.x ?? event.clientX ?? 0;
-            const clientY = event.client?.y ?? event.clientY ?? 0;
-            clickTooltip.hide?.();
-            clickTooltip.show({
-              detailTrigger: true,
-              target: { id: this.id, type: 'node' },
-              targetType: 'node',
-              itemType: 'node',
-              item: { id: this.id },
-              data: { id: this.id },
-              client: { x: clientX, y: clientY },
-              clientX,
-              clientY,
-            });
-          }
-          return;
-        }
-
-        // 检查是否点击了标题文本区域
-        // 由于 G6 的 Text 元素点击事件可能不可靠，我们通过排除法来判断
-        // 如果点击的不是折叠按钮，不是详情图标（已处理），且节点有 detail，就认为是点击了标题区域
-        const labelShape: any = this.getLabelTextShape();
-        if (!labelShape) return;
-
-        // 检查是否是折叠按钮区域
-        if (isCollapseTarget(event)) return;
-
-        // 获取点击坐标
-        const clientX = event.client?.x ?? event.clientX ?? 0;
-        const clientY = event.client?.y ?? event.clientY ?? 0;
-
-        event.stopPropagation();
-        event.stopImmediatePropagation?.();
-        const graph = this.context.graph;
-
-        // 获取节点数据
-        const nodeData = graph.getNodeData(this.id);
-        if (!nodeData?.detail) return;
-
-        // 获取 tooltip 插件并显示
-        const clickTooltip = graph.getPluginInstance(CLICK_TOOLTIP_KEY) as any;
-        if (clickTooltip && typeof clickTooltip.show === 'function') {
-          clickTooltip.hide?.();
-          clickTooltip.show({
-            detailTrigger: true,
-            target: { id: this.id, type: 'node' },
-            targetType: 'node',
-            itemType: 'node',
-            item: { id: this.id },
-            data: { id: this.id },
-            client: { x: clientX, y: clientY },
-            clientX,
-            clientY,
-          });
-        }
-      };
-
-      // 在节点元素本身监听点击事件
-      this.addEventListener(CommonEvent.CLICK, handleNodeClick);
-    }
-
-    // 使用 setTimeout 确保标签文本已经创建，设置交互属性
-    setTimeout(() => {
-      const labelShape: any = this.getLabelTextShape();
-      if (labelShape) {
-        this.setDetailInteractive(labelShape);
-      }
-    }, 0);
-  }
-
-  drawDetailIcon(attributes, container) {
-    const labelStyle: any = this.getLabelStyle(attributes);
-    if (!labelStyle) return;
-
-    const iconLeft = labelStyle.x - DETAIL_ICON_GAP - DETAIL_ICON_SIZE;
-    const iconTop = labelStyle.y - 8.5;
-    const color = themeColors.value.detailIconStroke;
-
-    // 使用 HTML 元素来渲染 SVG
-    const svgString = `
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; cursor: pointer;">
-        <path
-          d="M12.6667 1.33337H3.33341C2.96522 1.33337 2.66675 1.63185 2.66675 2.00004V14C2.66675 14.3682 2.96522 14.6667 3.33341 14.6667H12.6667C13.0349 14.6667 13.3334 14.3682 13.3334 14V2.00004C13.3334 1.63185 13.0349 1.33337 12.6667 1.33337Z"
-          stroke="${color}" stroke-width="1.33333" stroke-linejoin="round" />
-        <path d="M7 4.66663H11" stroke="${color}" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round" />
-        <path d="M7 8H11" stroke="${color}" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round" />
-        <path d="M7 11.3334H11" stroke="${color}" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round" />
-        <path fill-rule="evenodd" clip-rule="evenodd"
-          d="M4.99992 5.33333C5.36812 5.33333 5.66659 5.03487 5.66659 4.66667C5.66659 4.29847 5.36812 4 4.99992 4C4.63172 4 4.33325 4.29847 4.33325 4.66667C4.33325 5.03487 4.63172 5.33333 4.99992 5.33333Z"
-          fill="${color}" />
-        <path fill-rule="evenodd" clip-rule="evenodd"
-          d="M4.99992 8.66671C5.36812 8.66671 5.66659 8.36824 5.66659 8.00004C5.66659 7.63184 5.36812 7.33337 4.99992 7.33337C4.63172 7.33337 4.33325 7.63184 4.33325 8.00004C4.33325 8.36824 4.63172 8.66671 4.99992 8.66671Z"
-          fill="${color}" />
-        <path fill-rule="evenodd" clip-rule="evenodd"
-          d="M4.99992 12C5.36812 12 5.66659 11.7015 5.66659 11.3333C5.66659 10.9651 5.36812 10.6666 4.99992 10.6666C4.63172 10.6666 4.33325 10.9651 4.33325 11.3333C4.33325 11.7015 4.63172 12 4.99992 12Z"
-          fill="${color}" />
-      </svg>
-    `;
-
-    const iconShape = this.upsert(
-      'detail-icon',
-      GHTML,
-      {
-        x: iconLeft,
-        y: iconTop,
-        width: DETAIL_ICON_SIZE,
-        height: DETAIL_ICON_SIZE,
-        innerHTML: svgString,
-        cursor: 'pointer',
-        pointerEvents: 'auto',
-        name: DETAIL_TRIGGER_NAME,
-      } as any,
-      container,
-    );
-
-    // 为 HTML 元素添加点击事件
-    if (iconShape && !Reflect.has(iconShape, '__detail_bind__')) {
-      Reflect.set(iconShape, '__detail_bind__', true);
-
-      // 等待 DOM 元素渲染后绑定事件
-      setTimeout(() => {
-        const domElement = iconShape.getDomElement?.();
-        if (domElement) {
-          domElement.style.cursor = 'pointer';
-          domElement.addEventListener('click', (event: MouseEvent) => {
-            event.stopPropagation();
-            event.preventDefault();
-            const graph = this.context.graph;
-
-            // 获取节点数据
-            const nodeData = graph.getNodeData(this.id);
-            if (!nodeData?.detail) return;
-
-            // 获取 tooltip 插件并显示
-            const clickTooltip = graph.getPluginInstance(CLICK_TOOLTIP_KEY) as any;
-            if (clickTooltip && typeof clickTooltip.show === 'function') {
-              // 使用鼠标的实际坐标
-              clickTooltip.hide?.();
-              clickTooltip.show({
-                detailTrigger: true,
-                target: { id: this.id, type: 'node' },
-                targetType: 'node',
-                itemType: 'node',
-                item: { id: this.id },
-                data: { id: this.id },
-                client: { x: event.clientX, y: event.clientY },
-                clientX: event.clientX,
-                clientY: event.clientY,
-              });
-            }
-          });
-        }
-      }, 0);
-    }
-  }
-
-  getCollapseStyle(attributes) {
-    if (this.childrenData.length === 0) return false;
-    const { collapsed } = attributes;
-    const [width, height] = this.getSize(attributes);
-    return {
-      backgroundFill: themeColors.value.collapseBg,
-      backgroundHeight: 18,
-      backgroundLineWidth: 1,
-      backgroundRadius: 4,
-      backgroundStroke: themeColors.value.collapseBorder,
-      backgroundWidth: 18,
-      cursor: 'pointer',
-      // text: '',
-      x: width / 2 + 10,
-      y: 0,
-      name: COLLAPSE_TARGET_NAME,
-      tooltip: false,
-    };
-  }
-
-  drawCollapseShape(attributes, container) {
-    const collapseStyle = this.getCollapseStyle(attributes);
-    const btn = this.upsert('collapse', Badge, collapseStyle, container);
-
-    if (btn && !Reflect.has(btn, '__bind__')) {
-      Reflect.set(btn, '__bind__', true);
-      const stopPointerPropagation = (e: any) => {
-        e?.stopPropagation?.();
-        e?.stopImmediatePropagation?.();
-      };
-
-      btn.addEventListener(CommonEvent.POINTER_ENTER, stopPointerPropagation);
-      btn.addEventListener(CommonEvent.POINTER_MOVE, stopPointerPropagation);
-      btn.addEventListener(CommonEvent.POINTER_LEAVE, stopPointerPropagation);
-      btn.addEventListener(CommonEvent.POINTER_OVER, stopPointerPropagation);
-      btn.addEventListener(CommonEvent.POINTER_OUT, stopPointerPropagation);
-      btn.addEventListener(CommonEvent.CLICK, (event: any) => {
-        stopPointerPropagation(event);
-        const { collapsed } = this.attributes;
-        const graph = this.context.graph;
-        if (collapsed) {
-          graph.expandElement(this.id);
-        } else {
-          graph.collapseElement(this.id);
-        }
-      });
-    }
-
-    this.drawCollapseIcon(attributes, container);
-  }
-
-  drawCollapseIcon(attributes, container) {
-    const collapseStyle = this.getCollapseStyle(attributes);
-    if (!collapseStyle) return;
-
-    const centerX = collapseStyle.x;
-    const centerY = collapseStyle.y;
-    const size = 5;
-    const color = themeColors.value.collapseFill;
-
-    this.upsert(
-      'collapse-icon-horizontal',
-      GLine,
-      {
-        x1: centerX - size,
-        y1: centerY,
-        x2: centerX + size,
-        y2: centerY,
-        stroke: color,
-        lineWidth: 1.6,
-        strokeLinecap: 'round',
-      },
-      container,
-    );
-
-    if (this.attributes.collapsed) {
-      this.upsert(
-        'collapse-icon-vertical',
-        GLine,
-        {
-          x1: centerX,
-          y1: centerY - size,
-          x2: centerX,
-          y2: centerY + size,
-          stroke: color,
-          lineWidth: 1.6,
-          strokeLinecap: 'round',
-        },
-        container,
-      );
-    } else if (this.shapeMap?.['collapse-icon-vertical']) {
-      this.shapeMap['collapse-icon-vertical'].remove();
-      delete this.shapeMap['collapse-icon-vertical'];
-    }
-  }
-
-  getKeyStyle(attributes) {
-    const keyStyle = super.getKeyStyle(attributes);
-    return {
-      ...keyStyle,
-      fill: themeColors.value.nodeFill,
-      lineWidth: 1,
-      stroke: themeColors.value.nodeBorder,
-    };
-  }
-
-  getLabelTextShape() {
-    if (!this.shapeMap) return undefined;
-    const shapes = Object.values(this.shapeMap) as any[];
-    return shapes.find(
-      (shape) => shape instanceof GText && shape?.attributes?.text === this.data.name,
-    );
-  }
-
-  getLabelBounds() {
-    const labelShape: any = this.getLabelTextShape();
-    if (labelShape?.getLocalBounds) {
-      return labelShape.getLocalBounds();
-    }
-    return undefined;
-  }
-
-  estimateTextWidth(text: string | number | undefined, fontSize: number) {
-    if (!text) return 0;
-    const str = String(text);
-    return Array.from(str).reduce((sum, char) => {
-      const isFullWidth = char.charCodeAt(0) > 255;
-      const ratio = isFullWidth ? 1 : 0.6;
-      return sum + fontSize * ratio;
-    }, 0);
-  }
-
-  getTagStyle(attributes) {
-    // 没有 tag 就不画
-    if (!this.data.tag) return false;
-
-    const labelStyle: any = this.getLabelStyle(attributes);
-    const labelBounds = this.getLabelBounds();
-    const labelRight = labelBounds ? labelBounds.max[0] : labelStyle.x + this.estimateTextWidth(labelStyle.text, labelStyle.fontSize ?? 12);
-    const x = labelRight + TITLE_TAG_GAP + 2;
-    const y = labelStyle.y - 2;          // 与标题同一行
-    const tagFontSize = 12;
-    const tagTextWidth = this.estimateTextWidth(this.data.tag, tagFontSize);
-    const backgroundWidth = Math.max(TAG_MIN_WIDTH, tagTextWidth + TAG_HORIZONTAL_PADDING);
-    const backgroundHeight = tagFontSize + TAG_VERTICAL_PADDING;
-
-    const tagText = this.data.tag as string;
+  // 标签（如果有）
+  let tagHTML = '';
+  if (nodeData.tag) {
+    const tagText = escapeHtml(String(nodeData.tag));
     const isCoreCashCow = tagText === '核心现金牛';
+    const tagBg = isCoreCashCow ? colors.tagSpecialBg : colors.tagNormalBg;
+    const tagBorder = isCoreCashCow ? colors.tagSpecialBorder : colors.tagNormalBorder;
+    const tagTextColor = isCoreCashCow ? colors.tagSpecialText : colors.tagNormalText;
 
-    return {
-      backgroundFill: isCoreCashCow ? themeColors.value.tagSpecialBg : themeColors.value.tagNormalBg,
-      backgroundStroke: isCoreCashCow ? themeColors.value.tagSpecialBorder : themeColors.value.tagNormalBorder,
-      backgroundRadius: 2.8,
-      backgroundWidth,
-      backgroundHeight,
-      x,
-      y,
-      text: tagText,
-      fontSize: tagFontSize,
-      fill: isCoreCashCow ? themeColors.value.tagSpecialText : themeColors.value.tagNormalText,
+    // 估算标题文本宽度（中文字符按14px，英文字符按8.4px计算）
+    const estimateTitleWidth = (text: string) => {
+      let width = 0;
+      for (const char of text) {
+        const code = char.charCodeAt(0);
+        width += (code > 255) ? 14 : 8.4; // 中文字符14px，英文字符8.4px
+      }
+      return Math.min(width, availableWidth);
     };
+    const titleWidth = estimateTitleWidth(nodeData.name || '');
+
+    // tag紧贴标题右侧，和标题水平对齐
+    const tagLeft = titleLeft + titleWidth + TITLE_TAG_GAP;
+    const tagTop = titleTop; // 和标题同一行
+
+    tagHTML = `
+      <div style="
+        position: absolute;
+        left: ${tagLeft}px;
+        top: ${tagTop}px;
+        background: ${tagBg};
+        border-radius: 4px;
+        padding: ${TAG_VERTICAL_PADDING / 2}px ${TAG_HORIZONTAL_PADDING / 2}px;
+        font-size: 12px;
+        color: ${tagTextColor};
+        white-space: nowrap;
+        pointer-events: none;
+        line-height: 20px;
+        height: 20px;
+        display: inline-flex;
+        align-items: center;
+      ">${tagText}</div>
+    `;
   }
 
-  // 画 tag
-  drawTagShape(attributes, container) {
-    const tagStyle = this.getTagStyle(attributes);
-    if (!tagStyle) return;
+  // 价格标签
+  const priceText = escapeHtml(String(nodeData.label || ''));
+  const priceStyle = `
+    position: absolute;
+    left: ${basePadding + 16}px;
+    bottom: ${10}px;
+    font-size: 14px;
+    color: ${colors.nodeSecondaryText};
+    opacity: 0.85;
+  `;
 
-    this.upsert('tag', Badge, tagStyle, container);
+  // 折叠按钮（如果有子节点）
+  let collapseButtonHTML = '';
+  if (hasChildren) {
+    // 按钮位置：在节点卡片右侧中间
+    const collapseButtonStyle = `
+      position: absolute;
+      right: -20px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 18px;
+      height: 18px;
+      background: ${colors.collapseBg};
+      border: 1px solid ${colors.collapseBorder};
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    `;
+    const collapseIconColor = colors.collapseFill;
+    // 修复icon：使用正确的viewBox和坐标
+    const collapseIcon = isExpanded
+      ? `<line x1="3" y1="9" x2="15" y2="9" stroke="${collapseIconColor}" stroke-width="1.6" stroke-linecap="round" />`
+      : `<line x1="3" y1="9" x2="15" y2="9" stroke="${collapseIconColor}" stroke-width="1.6" stroke-linecap="round" />
+         <line x1="9" y1="3" x2="9" y2="15" stroke="${collapseIconColor}" stroke-width="1.6" stroke-linecap="round" />`;
+
+    collapseButtonHTML = `
+      <div class="collapse-button" style="${collapseButtonStyle}" onclick="handleCollapseClick('${nodeData.id}')">
+        <svg width="18" height="18" viewBox="0 0 18 18" style="display: block;">
+          ${collapseIcon}
+        </svg>
+      </div>
+    `;
   }
 
-  render(attributes = this.parsedAttributes, container) {
-    super.render(attributes, container);
-    this.markDetailTrigger();
-    this.drawDetailIcon(attributes, container);
-    this.drawTagShape(attributes, container);
-    this.drawPriceShape(attributes, container);
-    this.drawCollapseShape(attributes, container);
-  }
-}
+  return `
+    <div style="
+      width: ${width}px;
+      height: ${height}px;
+      position: relative;
+      background: ${colors.nodeFill};
+      border: 1px solid ${colors.nodeBorder};
+      border-radius: 4px;
+      box-sizing: border-box;
+    ">
+      <!-- 详情图标 -->
+      <div class="detail-icon" style="${detailIconStyle}" onclick="handleDetailIconClick(event, '${nodeData.id}')">
+        ${detailIconSVG}
+      </div>
+      
+      <!-- 标题文本 -->
+      <div class="detail-title" style="${titleStyle}" onclick="handleTitleClick(event, '${nodeData.id}')">
+        ${titleText}
+      </div>
+      
+      <!-- 标签 -->
+      ${tagHTML}
+      
+      <!-- 价格标签 -->
+      <div style="${priceStyle}">${priceText}</div>
+      
+      <!-- 折叠按钮 -->
+      ${collapseButtonHTML}
+    </div>
+  `;
+};
 
-register(ExtensionCategory.NODE, 'tree-node', TreeNode);
+// 全局事件处理函数
+(window as any).handleDetailIconClick = (event: MouseEvent, nodeId: string) => {
+  event.stopPropagation();
+  event.preventDefault();
+  if (!globalGraphInstance) return;
+
+  const nodeData = globalGraphInstance.getNodeData(nodeId);
+  if (!nodeData?.detail) return;
+
+  const clickTooltip = globalGraphInstance.getPluginInstance(CLICK_TOOLTIP_KEY) as any;
+  if (clickTooltip && typeof clickTooltip.show === 'function') {
+    clickTooltip.hide?.();
+    clickTooltip.show({
+      detailTrigger: true,
+      target: { id: nodeId, type: 'node' },
+      targetType: 'node',
+      itemType: 'node',
+      item: { id: nodeId },
+      data: { id: nodeId },
+      client: { x: event.clientX, y: event.clientY },
+      clientX: event.clientX,
+      clientY: event.clientY,
+    });
+  }
+};
+
+(window as any).handleTitleClick = (event: MouseEvent, nodeId: string) => {
+  event.stopPropagation();
+  event.preventDefault();
+  if (!globalGraphInstance) return;
+
+  const nodeData = globalGraphInstance.getNodeData(nodeId);
+  if (!nodeData?.detail) return;
+
+  const clickTooltip = globalGraphInstance.getPluginInstance(CLICK_TOOLTIP_KEY) as any;
+  if (clickTooltip && typeof clickTooltip.show === 'function') {
+    clickTooltip.hide?.();
+    clickTooltip.show({
+      detailTrigger: true,
+      target: { id: nodeId, type: 'node' },
+      targetType: 'node',
+      itemType: 'node',
+      item: { id: nodeId },
+      data: { id: nodeId },
+      client: { x: event.clientX, y: event.clientY },
+      clientX: event.clientX,
+      clientY: event.clientY,
+    });
+  }
+};
+
+(window as any).handleCollapseClick = (nodeId: string) => {
+  if (!globalGraphInstance) return;
+
+  try {
+    const nodeData = globalGraphInstance.getNodeData(nodeId);
+    const collapsed = nodeData?.style?.collapsed ?? false;
+
+    if (collapsed) {
+      globalGraphInstance.expandElement(nodeId);
+      // 更新 expanded 状态
+      globalGraphInstance.updateNodeData(nodeId, (data: any) => ({
+        ...data,
+        style: {
+          ...data.style,
+          expanded: true,
+        },
+      }));
+    } else {
+      globalGraphInstance.collapseElement(nodeId);
+      // 更新 expanded 状态
+      globalGraphInstance.updateNodeData(nodeId, (data: any) => ({
+        ...data,
+        style: {
+          ...data.style,
+          expanded: false,
+        },
+      }));
+    }
+  } catch (e) {
+    console.error('Error toggling collapse:', e);
+  }
+};
 
 // 现在使用 G6 内置的 Polyline 和 labelText，不需要自定义边类
 
@@ -782,7 +611,7 @@ const initGraph = async () => {
     data: treeToGraphData(data, {
       getNodeData: (datum, depth) => {
         if (!datum.style) datum.style = {};
-        datum.style.size = [...COLLAPSED_SIZE];
+        datum.style.size = [...NODE_SIZE];
         // 只在第4层及以后才默认折叠，让前三层都能正常显示
         datum.style.collapsed = depth >= 5;
         if (typeof datum.style.expanded === 'undefined') {
@@ -796,28 +625,50 @@ const initGraph = async () => {
       getEdgeData: (source, target) => {
         // 如果目标节点有 rate 数据，则在边线终点显示百分比
         const rate = target?.rate;
-        if (rate !== undefined && rate !== null) {
-          const percentage = (rate * 100).toFixed(1) + '%';
-          return {
-            source: source.id,
-            target: target.id,
-            style: {
-              labelText: percentage,
-            }
-          };
-        }
-        return {
+        const edgeData: any = {
           source: source.id,
           target: target.id,
+          // 指定使用右端和左端的端口
+          sourcePort: 'right',
+          targetPort: 'left',
         };
+        if (rate !== undefined && rate !== null) {
+          const percentage = (rate * 100).toFixed(1) + '%';
+          edgeData.style = {
+            labelText: percentage,
+          };
+        }
+        return edgeData;
       },
     }),
     node: {
-      type: 'tree-node',
+      type: 'html',
       style: {
-        size: [...COLLAPSED_SIZE],
-        ports: [{ placement: 'left' }, { placement: 'right' }],
-        radius: 4,
+        size: [...NODE_SIZE],
+        innerHTML: (d: any) => {
+          const nodeId = d.id;
+          const nodeData = graphInstance?.getNodeData(nodeId) || d.data || d;
+          const isExpanded = nodeData?.style?.expanded ?? false;
+          const hasChildren = nodeHasChildrenMap.get(nodeId) ?? false;
+          return generateNodeHTML(nodeData, isExpanded, hasChildren);
+        },
+        dx: () => {
+          const [width] = NODE_SIZE;
+          return -width / 2;
+        },
+        dy: () => {
+          const [, height] = NODE_SIZE;
+          return -height / 2;
+        },
+        // 配置连接点：从右端中间位置延出
+        ports: [
+          {
+            placement: 'right', // 右端中间位置
+          },
+          {
+            placement: 'left', // 左端中间位置（用于接收连接）
+          }
+        ],
       },
     },
     edge: {
@@ -846,29 +697,11 @@ const initGraph = async () => {
     layout: {
       type: 'mindmap',
       direction: 'LR',
-      getHeight: (node?: any) => {
-        if (!node || !graphInstance) return COLLAPSED_SIZE[1];
-        const nodeId = typeof node === 'string' ? node : node.id ?? node.data?.id;
-        if (!nodeId) return COLLAPSED_SIZE[1];
-        try {
-          const nodeData = graphInstance.getNodeData(nodeId);
-          const expanded = nodeData?.style?.expanded ?? false;
-          return (expanded ? EXPANDED_SIZE : COLLAPSED_SIZE)[1];
-        } catch (e) {
-          return COLLAPSED_SIZE[1];
-        }
+      getHeight: () => {
+        return NODE_SIZE[1];
       },
-      getWidth: (node?: any) => {
-        if (!node || !graphInstance) return COLLAPSED_SIZE[0];
-        const nodeId = typeof node === 'string' ? node : node.id ?? node.data?.id;
-        if (!nodeId) return COLLAPSED_SIZE[0];
-        try {
-          const nodeData = graphInstance.getNodeData(nodeId);
-          const expanded = nodeData?.style?.expanded ?? false;
-          return (expanded ? EXPANDED_SIZE : COLLAPSED_SIZE)[0];
-        } catch (e) {
-          return COLLAPSED_SIZE[0];
-        }
+      getWidth: () => {
+        return NODE_SIZE[0];
       },
       getVGap: () => {
         // 使用固定的垂直间距
@@ -886,6 +719,7 @@ const initGraph = async () => {
 
   // 保存 graph 实例引用
   graphInstance = graph;
+  globalGraphInstance = graph;
 
   const hideClickTooltip = () => {
     const clickTooltip = graph.getPluginInstance(CLICK_TOOLTIP_KEY) as any;
@@ -894,6 +728,25 @@ const initGraph = async () => {
 
   graph.once(GraphEvent.AFTER_RENDER, () => {
     graph.fitView();
+  });
+
+  // 监听节点展开/收起事件，更新 HTML 内容
+  graph.on('node:collapse', (evt: any) => {
+    const nodeId = evt?.item?.id || evt?.id;
+    if (nodeId) {
+      setTimeout(() => {
+        graph.updateNodeData(nodeId, (data: any) => ({ ...data }));
+      }, 0);
+    }
+  });
+
+  graph.on('node:expand', (evt: any) => {
+    const nodeId = evt?.item?.id || evt?.id;
+    if (nodeId) {
+      setTimeout(() => {
+        graph.updateNodeData(nodeId, (data: any) => ({ ...data }));
+      }, 0);
+    }
   });
 
   graph.on('tooltip:show', (evt: any) => {
