@@ -89,8 +89,8 @@ const themeColors = computed(() => {
       collapseBorder: '#374152',
       collapseFill: '#BCC3CE',
       // 详情图标
-      detailIconStroke: '#BCC3CE',
-      detailIconFill: '#BCC3CE',
+      detailIconStroke: '#5261A7',
+      detailIconFill: '#5261A7',
     };
   } else {
     return {
@@ -133,7 +133,7 @@ const TITLE_TAG_GAP = 6;
 const TAG_HORIZONTAL_PADDING = 12;
 const TAG_VERTICAL_PADDING = 9;
 const DETAIL_ICON_SIZE = 14;
-const DETAIL_ICON_GAP = 3.5;
+const DETAIL_ICON_GAP = 4;
 const DETAIL_TRIGGER_NAME = 'detail-trigger';
 
 const NODE_WIDTH = 290;
@@ -144,7 +144,7 @@ const LABEL_BOTTOM_MARGIN = 10;
 const TITLE_LABEL_GAP = 8;
 const LABEL_LEFT_PADDING = 26;
 const LABEL_RIGHT_PADDING = 10;
-const TITLE_AREA_HEIGHT = 32; 
+const TITLE_AREA_HEIGHT = 32;
 
 // 计算文本换行后的行数
 const calculateTextLines = (text: string, maxWidth: number, fontSize: number): number => {
@@ -373,6 +373,11 @@ const generateNodeHTML = (nodeData: any, isExpanded: boolean, hasChildren: boole
   const iconOffset = DETAIL_ICON_SIZE + DETAIL_ICON_GAP;
   const availableWidth = width - (basePadding + iconOffset) - 20;
 
+  // 获取节点层级（depth），从 nodeData.style.depth 或 nodeData.depth 获取
+  const depth = nodeData?.style?.depth ?? nodeData?.depth ?? 0;
+  // 第三级节点（depth >= 2，因为从0开始计数）开始不加粗
+  const fontWeight = depth >= 2 ? 400 : 600;
+
   // 标题文本
   const titleText = escapeHtml(String(nodeData.name || ''));
   const titleLeft = basePadding + iconOffset;
@@ -382,7 +387,7 @@ const generateNodeHTML = (nodeData: any, isExpanded: boolean, hasChildren: boole
     left: ${titleLeft}px;
     top: ${titleTop}px;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: ${fontWeight};
     color: ${colors.nodeText};
     opacity: 0.85;
     cursor: pointer;
@@ -603,7 +608,7 @@ const generateNodeHTML = (nodeData: any, isExpanded: boolean, hasChildren: boole
   }
 };
 
-(window as any).handleCollapseClick = (nodeId: string) => {
+(window as any).handleCollapseClick = async (nodeId: string) => {
   if (!globalGraphInstance) return;
 
   try {
@@ -611,26 +616,26 @@ const generateNodeHTML = (nodeData: any, isExpanded: boolean, hasChildren: boole
     const collapsed = nodeData?.style?.collapsed ?? false;
 
     if (collapsed) {
+      // expandElement 会自动处理布局和状态更新
       globalGraphInstance.expandElement(nodeId);
-      // 更新 expanded 状态
-      globalGraphInstance.updateNodeData(nodeId, (data: any) => ({
-        ...data,
-        style: {
-          ...data.style,
-          expanded: true,
-        },
-      }));
     } else {
+      // collapseElement 会自动处理布局和状态更新
       globalGraphInstance.collapseElement(nodeId);
-      // 更新 expanded 状态
-      globalGraphInstance.updateNodeData(nodeId, (data: any) => ({
-        ...data,
-        style: {
-          ...data.style,
-          expanded: false,
-        },
-      }));
     }
+
+    // 等待展开/收起操作完成，然后更新 HTML 并触发动画
+    // 参考：https://g6.antv.antgroup.com/manual/animation/custom-animation
+    setTimeout(async () => {
+      const updatedNodeData = globalGraphInstance?.getNodeData(nodeId);
+      if (updatedNodeData) {
+        // 使用 updateNodeData 数组形式更新节点数据，参考文档示例
+        globalGraphInstance?.updateNodeData([{
+          ...updatedNodeData,
+        }]);
+        // 调用 draw() 触发更新动画
+        await globalGraphInstance?.draw();
+      }
+    }, 50);
   } catch (e) {
     console.error('Error toggling collapse:', e);
   }
@@ -664,6 +669,9 @@ const initGraph = async () => {
     data: treeToGraphData(data, {
       getNodeData: (datum, depth) => {
         if (!datum.style) datum.style = {};
+
+        // 保存节点层级信息，用于生成 HTML 时判断标题粗细
+        datum.style.depth = depth;
 
         // 根据 label 内容动态计算节点高度
         const nodeHeight = calculateNodeHeight(datum.label);
@@ -745,8 +753,6 @@ const initGraph = async () => {
         endArrow: true,
         endArrowType: 'circle',
         radius: 8,
-        // 标签样式配置
-        // labelText: '',
         labelFontSize: 12,
         labelFill: themeColors.value.edgeLabelFill,
         labelBackground: false,
@@ -801,22 +807,37 @@ const initGraph = async () => {
     graph.fitView();
   });
 
-  // 监听节点展开/收起事件，更新 HTML 内容
+  // 监听节点展开/收起事件，更新 HTML 内容并触发动画
+  // 参考：https://g6.antv.antgroup.com/manual/animation/custom-animation
+  const handleNodeExpandCollapse = async (nodeId: string) => {
+    setTimeout(async () => {
+      try {
+        const nodeData = graph.getNodeData(nodeId);
+        if (nodeData) {
+          // 使用 updateNodeData 数组形式更新节点数据，参考文档示例
+          graph.updateNodeData([{
+            ...nodeData,
+          }]);
+          // 调用 draw() 触发更新动画（节点的 update 动画配置会让位置变化有平滑过渡）
+          await graph.draw();
+        }
+      } catch (e) {
+        console.error('Error updating node after expand/collapse:', e);
+      }
+    }, 50);
+  };
+
   graph.on('node:collapse', (evt: any) => {
     const nodeId = evt?.item?.id || evt?.id;
     if (nodeId) {
-      setTimeout(() => {
-        graph.updateNodeData(nodeId, (data: any) => ({ ...data }));
-      }, 0);
+      handleNodeExpandCollapse(nodeId);
     }
   });
 
   graph.on('node:expand', (evt: any) => {
     const nodeId = evt?.item?.id || evt?.id;
     if (nodeId) {
-      setTimeout(() => {
-        graph.updateNodeData(nodeId, (data: any) => ({ ...data }));
-      }, 0);
+      handleNodeExpandCollapse(nodeId);
     }
   });
 
