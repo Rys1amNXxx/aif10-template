@@ -70,13 +70,13 @@ const themeColors = computed(() => {
   if (isDark.value) {
     return {
       // 节点
-      nodeFill: '#1D273F',           // background-16-dark
-      nodeBorder: '#374152',         // border-01-dark
-      nodeText: '#F9FBFC',           // text-01-dark
-      nodeSecondaryText: '#BCC3CE',  // text-04-dark
+      nodeFill: '#1D273F',
+      nodeBorder: '#374152',
+      nodeText: '#F9FBFC',
+      nodeSecondaryText: '#BCC3CE',
       // 边
-      edgeStroke: '#828FA1',         // border-01-dark
-      edgeLabelFill: '#F0F4F9',      // text-03-dark
+      edgeStroke: '#828FA1',
+      edgeLabelFill: '#F0F4F9',
       // 标签
       tagNormalBg: '#F0F4F91F',
       tagNormalBorder: 'rgba(130, 143, 161, 0.2)',
@@ -95,10 +95,10 @@ const themeColors = computed(() => {
   } else {
     return {
       // 节点
-      nodeFill: '#FFFFFF',           // background-00
-      nodeBorder: '#EBEDF0',         // border-01
-      nodeText: '#131B2A',           // text-01
-      nodeSecondaryText: '#768496',  // text-04
+      nodeFill: '#FFFFFF',
+      nodeBorder: '#EBEDF0',
+      nodeText: '#131B2A',
+      nodeSecondaryText: '#768496',
       // 边
       edgeStroke: '#828FA1AA',
       edgeLabelFill: '#2A354E',
@@ -136,7 +136,7 @@ const DETAIL_ICON_SIZE = 14;
 const DETAIL_ICON_GAP = 3.5;
 const DETAIL_TRIGGER_NAME = 'detail-trigger';
 
-const NODE_SIZE: [number, number] = [290, 72]; // 统一使用固定尺寸
+const NODE_SIZE: [number, number] = [290, 72];
 const BASE_HORIZONTAL_GAP = 40;
 const COLLAPSE_TARGET_NAME = 'collapse-button';
 const CLICK_TOOLTIP_KEY = 'node-click-tooltip';
@@ -320,7 +320,7 @@ let globalGraphInstance: Graph | null = null;
 
 // 生成节点 HTML 内容的函数
 const generateNodeHTML = (nodeData: any, isExpanded: boolean, hasChildren: boolean) => {
-  const [width, height] = NODE_SIZE; // 统一使用固定尺寸
+  const [width, height] = NODE_SIZE;
   const colors = themeColors.value;
   const basePadding = 10;
   const iconOffset = DETAIL_ICON_SIZE + DETAIL_ICON_GAP;
@@ -391,7 +391,7 @@ const generateNodeHTML = (nodeData: any, isExpanded: boolean, hasChildren: boole
       let width = 0;
       for (const char of text) {
         const code = char.charCodeAt(0);
-        width += (code > 255) ? 14 : 8.4; // 中文字符14px，英文字符8.4px
+        width += (code > 255) ? 14 : 8.4;
       }
       return Math.min(width, availableWidth);
     };
@@ -399,7 +399,7 @@ const generateNodeHTML = (nodeData: any, isExpanded: boolean, hasChildren: boole
 
     // tag紧贴标题右侧，和标题水平对齐
     const tagLeft = titleLeft + titleWidth + TITLE_TAG_GAP;
-    const tagTop = titleTop; // 和标题同一行
+    const tagTop = titleTop;
 
     tagHTML = `
       <div style="
@@ -624,6 +624,7 @@ const initGraph = async () => {
       },
       getEdgeData: (source, target) => {
         // 如果目标节点有 rate 数据，则在边线终点显示百分比
+        // rate 只支持字符串类型（如 "33.0%"），如果为空值则不显示
         const rate = target?.rate;
         const edgeData: any = {
           source: source.id,
@@ -632,10 +633,10 @@ const initGraph = async () => {
           sourcePort: 'right',
           targetPort: 'left',
         };
-        if (rate !== undefined && rate !== null) {
-          const percentage = (rate * 100).toFixed(1) + '%';
+        // 只处理字符串类型且非空的 rate
+        if (typeof rate === 'string' && rate.trim() !== '') {
           edgeData.style = {
-            labelText: percentage,
+            labelText: rate,
           };
         }
         return edgeData;
@@ -688,10 +689,10 @@ const initGraph = async () => {
         labelFill: themeColors.value.edgeLabelFill,
         labelBackground: false,
         labelPadding: 0,
-        labelOffsetX: -15,  // 向左偏移
-        labelOffsetY: -10,   // 向上偏移
-        labelPlacement: 'end', // 标签位置在终点
-        labelAutoRotate: false, // 不自动旋转
+        labelOffsetX: -15,
+        labelOffsetY: -10,
+        labelPlacement: 'end',
+        labelAutoRotate: false,
       },
     },
     layout: {
