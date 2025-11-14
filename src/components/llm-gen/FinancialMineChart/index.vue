@@ -92,7 +92,7 @@ const fetchChartData = async () => {
       url: API_URL,
       data: {},
       beforeRequest: () => {
-        console.log('开始请求财务图谱数据...');
+        // console.log('开始请求财务图谱数据...');
       },
       afterRequest: () => {
         loading.value = false;
@@ -104,7 +104,7 @@ const fetchChartData = async () => {
 
       if (resultData) {
         chartData.value = resultData;
-        console.log('财务图谱数据加载成功');
+        // console.log('财务图谱数据加载成功');
       } else {
         error.value = '数据格式错误，未找到图谱数据';
         console.error('数据结构异常:', response.data);
@@ -367,11 +367,20 @@ function createClickTooltipPlugin(this: Graph) {
     key: CLICK_TOOLTIP_KEY,
     type: 'tooltip' as const,
     trigger: 'click' as const,
-    itemTypes: ['node'],
+    position: 'top-left',
+    offset: [15, 0],
+    // 允许鼠标进入tooltip，用于复制内容等交互
+    enterable: true,
     style: {
       ".tooltip": {
         background: '#000000D9',
         border: 'none',
+        borderRadius: '8px',
+        padding: '12px 16px',
+        maxWidth: '360px',
+        maxHeight: '400px',
+        overflowY: 'auto',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
       },
     },
     enable(event: any) {
@@ -868,17 +877,14 @@ const initGraph = async () => {
   });
 
   // 监听节点展开/收起事件，更新 HTML 内容并触发动画
-  // 参考：https://g6.antv.antgroup.com/manual/animation/custom-animatio
   const handleNodeExpandCollapse = async (nodeId: string) => {
     setTimeout(async () => {
       try {
         const nodeData = graph.getNodeData(nodeId);
         if (nodeData) {
-          // 使用 updateNodeData 数组形式更新节点数据，参考文档示例
           graph.updateNodeData([{
             ...nodeData,
           }]);
-          // 调用 draw() 触发更新动画（节点的 update 动画配置会让位置变化有平滑过渡）
           await graph.draw();
         }
       } catch (e) {
@@ -973,6 +979,30 @@ watch(isDark, () => {
   color: #5261A7 !important;
   text-decoration: underline;
   opacity: 1 !important;
+}
+
+/* Tooltip优化样式 */
+:deep(.g6-tooltip) {
+  z-index: 9999 !important;
+}
+
+/* 优化tooltip滚动条样式 */
+:deep(.g6-tooltip::-webkit-scrollbar) {
+  width: 6px;
+}
+
+:deep(.g6-tooltip::-webkit-scrollbar-track) {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+:deep(.g6-tooltip::-webkit-scrollbar-thumb) {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+:deep(.g6-tooltip::-webkit-scrollbar-thumb:hover) {
+  background: rgba(255, 255, 255, 0.5);
 }
 
 .insight-shell {
