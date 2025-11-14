@@ -34,6 +34,16 @@
       <p>· 内容由 AI 生成</p>
     </div>
 
+    <!-- 加载状态 -->
+    <div v-if="loading" class="absolute inset-0 flex items-center justify-center z-20">
+      <div class="text-[#768496] black:text-text-02-01-dark">加载中...</div>
+    </div>
+
+    <!-- 错误提示 -->
+    <div v-if="error && !loading" class="absolute inset-0 flex items-center justify-center z-20">
+      <div class="text-[#FD2033] text-sm">{{ error }}</div>
+    </div>
+
     <div id="container"></div>
   </div>
 </template>
@@ -59,11 +69,58 @@ import {
   subStyleProps,
   treeToGraphData,
 } from '@antv/g6';
-
-import data from './config.json';
+import { post } from '@/common/services/request';
 
 // 主题监听
 const isDark = useDark();
+
+// 数据存储
+const chartData = ref<any>(null);
+const loading = ref(false);
+const error = ref<string | null>(null);
+
+// 接口地址
+const API_URL = 'https://yapi.myhexin.com/yapi/mock_v2/324758/basicapi/visual,/basicapi/visual/smart/dev,/basicapi/visual/ai_f10/request/v3/dispatch';
+
+// 获取接口数据
+const fetchChartData = async () => {
+  loading.value = true;
+  error.value = null;
+
+  try {
+    const response = await post({
+      url: API_URL,
+      data: {},
+      beforeRequest: () => {
+        console.log('开始请求财务图谱数据...');
+      },
+      afterRequest: () => {
+        loading.value = false;
+      }
+    });
+
+    if (response.status_code === 0 || response.status_code === 200) {
+      const resultData = response.data?.result?.view_wrapper?.views?.[0]?.visual?.data?.[0]?.data;
+
+      if (resultData) {
+        chartData.value = resultData;
+        console.log('财务图谱数据加载成功');
+      } else {
+        error.value = '数据格式错误，未找到图谱数据';
+        console.error('数据结构异常:', response.data);
+      }
+    } else {
+      error.value = response.status_msg || '数据加载失败';
+      console.error('请求失败:', response);
+    }
+  } catch (err: any) {
+    error.value = err.message || '网络请求失败，请稍后重试';
+    console.error('请求异常:', err);
+  } finally {
+    loading.value = false;
+  }
+}
+
 
 // 主题配色方案
 const themeColors = computed(() => {
@@ -142,7 +199,7 @@ const LABEL_FONT_SIZE = 14;
 const LABEL_LINE_HEIGHT = 20;
 const LABEL_BOTTOM_MARGIN = 10;
 const TITLE_LABEL_GAP = 8;
-const LABEL_LEFT_PADDING = 26;
+const LABEL_LEFT_PADDING = 27;
 const LABEL_RIGHT_PADDING = 10;
 const TITLE_AREA_HEIGHT = 32;
 
@@ -349,7 +406,7 @@ function createClickTooltipPlugin(this: Graph) {
       return `
         <div style="max-width: 360px; background: transparent; border: transparent; border-radius: 12px; font-size: 14px; line-height: 1.6; color: ${textColor}">
           <div style="font-size: 14px; font-weight: 600; color: ${titleColor}; margin-bottom: 8px;">节点描述</div>
-          <div>${formatDetailToHtml(detail)}</div>
+          <div>${formatDetailToHtml(String(detail))}</div>
         </div>
       `;
     },
@@ -422,7 +479,7 @@ const generateNodeHTML = (nodeData: any, isExpanded: boolean, hasChildren: boole
   const detailIconStyle = `
     position: absolute;
     left: ${basePadding}px;
-    top: ${titleTop + 2}px;
+    top: ${titleTop + 3}px;
     width: ${DETAIL_ICON_SIZE}px;
     height: ${DETAIL_ICON_SIZE}px;
     cursor: pointer;
@@ -645,8 +702,16 @@ const generateNodeHTML = (nodeData: any, isExpanded: boolean, hasChildren: boole
 const graphRef = ref<Graph | null>(null);
 
 const initGraph = async () => {
-  // const response = await fetch('https://assets.antv.antgroup.com/g6/decision-tree.json');
-  // const data = await response.json();
+  // 如果没有数据，先获取数据
+  if (!chartData.value) {
+    await fetchChartData();
+  }
+
+  // 如果获取数据失败，使用默认数据或显示错误
+  if (!chartData.value) {
+    console.error('无法初始化图表：数据获取失败');
+    return;
+  }
 
   // 创建一个变量来存储 graph 引用，用于布局函数中访问
   let graphInstance: Graph | null = null;
@@ -660,13 +725,13 @@ const initGraph = async () => {
       node.children.forEach((child: any) => buildNodeMaps(child));
     }
   };
-  buildNodeMaps(data);
+  buildNodeMaps(chartData.value);
 
   const graph = new Graph({
     container: 'container',
     animation: COLLAPSE_EXPAND_ANIMATION,
-    data: treeToGraphData(data, {
-      getNodeData: (datum, depth) => {
+    data: treeToGraphData(chartData.value, {
+      getNodeData: (datum: any, depth: number) => {
         if (!datum.style) datum.style = {};
 
         // 保存节点层级信息，用于生成 HTML 时判断标题粗细
@@ -681,9 +746,9 @@ const initGraph = async () => {
         if (typeof datum.style.expanded === 'undefined') {
           datum.style.expanded = false;
         }
-        if (!datum.children) return datum;
+        if (!datum.children) return datum as any;
         const { children, ...restDatum } = datum;
-        return { ...restDatum, children: children.map((child) => child.id) };
+        return { ...restDatum, children: children.map((child: any) => child.id) } as any;
       },
       getEdgeData: (source, target) => {
         // 如果目标节点有 rate 数据，则在边线终点显示百分比
@@ -774,7 +839,7 @@ const initGraph = async () => {
         if (!nodeId) return [NODE_WIDTH, NODE_MIN_HEIGHT];
         try {
           const nodeData = graphInstance.getNodeData(nodeId);
-          const nodeHeight = calculateNodeHeight(nodeData?.label);
+          const nodeHeight = calculateNodeHeight(nodeData?.label as string | undefined);
           return [NODE_WIDTH, nodeHeight];
         } catch (e) {
           return [NODE_WIDTH, NODE_MIN_HEIGHT];
@@ -803,7 +868,7 @@ const initGraph = async () => {
   });
 
   // 监听节点展开/收起事件，更新 HTML 内容并触发动画
-  // 参考：https://g6.antv.antgroup.com/manual/animation/custom-animation
+  // 参考：https://g6.antv.antgroup.com/manual/animation/custom-animatio
   const handleNodeExpandCollapse = async (nodeId: string) => {
     setTimeout(async () => {
       try {
@@ -853,7 +918,9 @@ const initGraph = async () => {
   graphRef.value = graph;
 };
 
-const handleRefresh = () => {
+const handleRefresh = async () => {
+  // 重新获取数据
+  await fetchChartData();
   if (graphRef.value) {
     graphRef.value.destroy();
     graphRef.value = null;
@@ -867,7 +934,8 @@ const handleZoom = (ratio: number) => {
   void graph.zoomBy(ratio, undefined, graph.getViewportCenter());
 };
 
-onMounted(() => {
+onMounted(async () => {
+  await fetchChartData();
   void initGraph();
 });
 
