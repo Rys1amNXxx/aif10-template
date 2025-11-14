@@ -968,6 +968,13 @@ watch(isDark, () => {
   border-radius: 16px;
 }
 
+/* 节点标题悬浮样式 - 黑白主题一致 */
+:deep(.detail-title:hover) {
+  color: #5261A7 !important;
+  text-decoration: underline;
+  opacity: 1 !important;
+}
+
 .insight-shell {
   padding: 32px;
   background: linear-gradient(180deg, #edf2ff 0%, #dae4ff 100%);
