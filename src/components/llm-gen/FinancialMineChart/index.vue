@@ -1,6 +1,5 @@
 <template>
-
-  <div
+  <div ref="wrapperRef"
     class="relative border border-border-08 black:border-border-08-dark rounded-2xl shadow-[inset_0_4px_30px_rgba(88,108,158,0.12)]">
     <!-- 左上角控制按钮 -->
     <div class="absolute top-3 left-3 flex gap-2 z-10">
@@ -44,32 +43,27 @@
       <div class="text-[#FD2033] text-sm">{{ error }}</div>
     </div>
 
+    <!-- G6 容器 -->
     <div id="container"></div>
+
+    <!-- 自定义 Tooltip（完全脱离 G6 插件） -->
+    <Transition name="tooltip-fade" mode="out-in">
+      <div v-if="tooltip.visible" :key="tooltip.key" class="g6-custom-tooltip" :style="tooltipStyle">
+        <div class="g6-custom-tooltip-inner" v-html="tooltip.html"></div>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useDark } from '@vueuse/core';
-import { Circle as GCircle, HTML as GHTML, Line as GLine, Rect as GRect, Text as GText } from '@antv/g';
 import ResetIcon from '@/components/icons/Reset.vue';
 import ZoomInIcon from '@/components/icons/zoomIn.vue';
 import ZoomOutIcon from '@/components/icons/zoomOut.vue';
-import {
-  Badge,
-  CommonEvent,
-  ExtensionCategory,
-  Graph,
-  GraphEvent,
-  iconfont,
-  Label,
-  Polyline,
-  Rect,
-  register,
-  subStyleProps,
-  treeToGraphData,
-} from '@antv/g6';
+import { Graph, GraphEvent, iconfont, treeToGraphData } from '@antv/g6';
 import { post } from '@/common/services/request';
+import localConfigData from './config.json';
 
 // 主题监听
 const isDark = useDark();
@@ -79,8 +73,70 @@ const chartData = ref<any>(null);
 const loading = ref(false);
 const error = ref<string | null>(null);
 
+// 外层容器引用（用来算 tooltip 的相对位置）
+const wrapperRef = ref<HTMLElement | null>(null);
+
+// tooltip 状态
+const tooltip = ref<{
+  visible: boolean;
+  x: number;
+  y: number;
+  html: string;
+  nodeId: string | null;
+  key: number;
+}>({
+  visible: false,
+  x: 0,
+  y: 0,
+  html: '',
+  nodeId: null,
+  key: 0,
+});
+
+// tooltip 在容器内的样式（带边界裁剪）
+const TOOLTIP_VIEW_PADDING = 12;
+const tooltipStyle = computed(() => {
+  const wrapper = wrapperRef.value;
+  if (!wrapper || !tooltip.value.visible) return { display: 'none' };
+
+  const rect = wrapper.getBoundingClientRect();
+  const padding = TOOLTIP_VIEW_PADDING;
+  const maxWidth = 360;
+  const half = maxWidth / 2;
+
+  // const desiredLeft = tooltip.value.x - half;
+  let left = tooltip.value.x;
+  let top = tooltip.value.y;
+
+  // 左边界裁剪
+  if (left < padding) {
+    left = padding;
+  }
+  // 右边界裁剪
+  if (left + maxWidth > rect.width - padding) {
+    left = rect.width - padding - maxWidth;
+  }
+
+  // 垂直简单约束一下，避免跑出容器上下边缘
+  const offsetY = -10;
+  if (top < padding + 60) {
+    top = padding + 60;
+  }
+  if (top > rect.height - padding - 60) {
+    top = rect.height - padding - 60;
+  }
+
+  return {
+    left: `${left}px`,
+    top: `${top - offsetY}px`,
+  };
+});
+
+//测试开关：设置为 true 使用本地 config.json 数据，false 使用接口数据
+const USE_LOCAL_DATA = false;
 // 接口地址
-const API_URL = 'https://yapi.myhexin.com/yapi/mock_v2/324758/basicapi/visual,/basicapi/visual/smart/dev,/basicapi/visual/ai_f10/request/v3/dispatch';
+const API_URL =
+  'https://yapi.myhexin.com/yapi/mock_v2/324758/basicapi/visual,/basicapi/visual/smart/dev,/basicapi/visual/ai_f10/request/v3/dispatch';
 
 // 获取接口数据
 const fetchChartData = async () => {
@@ -88,6 +144,14 @@ const fetchChartData = async () => {
   error.value = null;
 
   try {
+    // 如果使用本地数据，直接使用 config.json
+    if (USE_LOCAL_DATA) {
+      loading.value = false;
+      chartData.value = localConfigData;
+      return;
+    }
+
+    // 否则从接口获取数据
     const response = await post({
       url: API_URL,
       data: {},
@@ -96,15 +160,15 @@ const fetchChartData = async () => {
       },
       afterRequest: () => {
         loading.value = false;
-      }
+      },
     });
 
     if (response.status_code === 0 || response.status_code === 200) {
-      const resultData = response.data?.result?.view_wrapper?.views?.[0]?.visual?.data?.[0]?.data;
+      const resultData =
+        response.data?.result?.view_wrapper?.views?.[0]?.visual?.data?.[0]?.data;
 
       if (resultData) {
         chartData.value = resultData;
-        // console.log('财务图谱数据加载成功');
       } else {
         error.value = '数据格式错误，未找到图谱数据';
         console.error('数据结构异常:', response.data);
@@ -119,8 +183,7 @@ const fetchChartData = async () => {
   } finally {
     loading.value = false;
   }
-}
-
+};
 
 // 主题配色方案
 const themeColors = computed(() => {
@@ -182,6 +245,7 @@ const COLLAPSE_EXPAND_ANIMATION = {
   easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
 };
 
+// 引入 iconfont（如果后续有图标文字可以继续用）
 const style = document.createElement('style');
 style.innerHTML = `@import url('${iconfont.css}');`;
 document.head.appendChild(style);
@@ -191,7 +255,6 @@ const TAG_HORIZONTAL_PADDING = 12;
 const TAG_VERTICAL_PADDING = 9;
 const DETAIL_ICON_SIZE = 14;
 const DETAIL_ICON_GAP = 4;
-const DETAIL_TRIGGER_NAME = 'detail-trigger';
 
 const NODE_WIDTH = 290;
 const NODE_MIN_HEIGHT = 72;
@@ -212,7 +275,7 @@ const calculateTextLines = (text: string, maxWidth: number, fontSize: number): n
 
   for (const char of text) {
     const code = char.charCodeAt(0);
-    const charWidth = (code > 255) ? fontSize : fontSize * 0.6; // 中文字符按字体大小，英文字符按0.6倍
+    const charWidth = code > 255 ? fontSize : fontSize * 0.6;
 
     if (currentWidth + charWidth > availableWidth && currentWidth > 0) {
       lines++;
@@ -232,14 +295,11 @@ const calculateNodeHeight = (label: string | undefined): number => {
   const labelWidth = NODE_WIDTH;
   const labelLines = calculateTextLines(String(label), labelWidth, LABEL_FONT_SIZE);
 
-  // 基础高度 = 标题区域 + label区域(行数 * 行高) + 底部间距
   const labelAreaHeight = labelLines * LABEL_LINE_HEIGHT;
-  const calculatedHeight = TITLE_AREA_HEIGHT + TITLE_LABEL_GAP + labelAreaHeight + LABEL_BOTTOM_MARGIN;
+  const calculatedHeight =
+    TITLE_AREA_HEIGHT + TITLE_LABEL_GAP + labelAreaHeight + LABEL_BOTTOM_MARGIN;
   return Math.max(calculatedHeight, NODE_MIN_HEIGHT);
 };
-
-const COLLAPSE_TARGET_NAME = 'collapse-button';
-const CLICK_TOOLTIP_KEY = 'node-click-tooltip';
 
 const escapeHtml = (raw: string) =>
   raw
@@ -249,188 +309,33 @@ const escapeHtml = (raw: string) =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 
-const formatDetailToHtml = (detail: string) =>
-  detail
+const formatDetailToHtml = (detail: string) => {
+  if (!detail) return '';
+
+  // 处理多种换行符格式
+  const normalized = String(detail)
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/\\\\n/g, '\n')
+    .replace(/\\n/g, '\n');
+
+  const lines = normalized
     .split(/\n+/)
     .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => `<p>${escapeHtml(line)}</p>`)
+    .filter(Boolean);
+
+  return lines
+    .map(
+      (line) =>
+        `<div style="margin-bottom: 4px;">${escapeHtml(line)}</div>`,
+    )
     .join('');
-
-const getItemData = (item: any) => {
-  if (!item) return undefined;
-  return item.data ?? item.model?.data ?? item.model;
 };
-
-const isCollapseTarget = (event: any) => {
-  const checkShape = (shape: any): boolean => {
-    if (!shape) return false;
-    const namesToCheck = [
-      shape?.name,
-      shape?.cfg?.name,
-      shape?.attributes?.name,
-      typeof shape.get === 'function' ? shape.get('name') : undefined,
-      typeof shape.getAttribute === 'function' ? shape.getAttribute('name') : undefined,
-    ];
-    if (namesToCheck.some((name) => name === COLLAPSE_TARGET_NAME || name === 'collapse')) return true;
-    return checkShape(shape.parent);
-  };
-
-  const target = event?.target ?? event?.shape ?? event?.detail?.shape;
-  if (checkShape(target)) return true;
-
-  const originalTarget = event?.originalEvent?.target;
-  if (checkShape(originalTarget)) return true;
-
-  const domEventTarget = event?.originalEvent?.originalEvent?.target;
-  if (checkShape(domEventTarget)) return true;
-
-  const key = event?.key ?? event?.name;
-  if (key === COLLAPSE_TARGET_NAME || key === 'collapse') return true;
-
-  return false;
-};
-
-const isDetailTrigger = (event: any) => {
-  const checkShape = (shape: any): boolean => {
-    if (!shape) return false;
-    const namesToCheck = [
-      shape?.name,
-      shape?.cfg?.name,
-      shape?.attributes?.name,
-      typeof shape.get === 'function' ? shape.get('name') : undefined,
-      typeof shape.getAttribute === 'function' ? shape.getAttribute('name') : undefined,
-    ];
-    if (namesToCheck.some((name) => name === DETAIL_TRIGGER_NAME)) return true;
-    return checkShape(shape.parent);
-  };
-
-  const target = event?.target ?? event?.shape ?? event?.detail?.shape;
-  if (checkShape(target)) return true;
-
-  const originalTarget = event?.originalEvent?.target;
-  if (checkShape(originalTarget)) return true;
-
-  const domEventTarget = event?.originalEvent?.originalEvent?.target;
-  if (checkShape(domEventTarget)) return true;
-
-  return false;
-};
-
-const getDetailFromItems = (items: any[] | undefined, graph?: Graph) => {
-  if (!items || items.length === 0) return undefined;
-  const item = items[0];
-  const data = getItemData(item);
-  if (data?.detail) return data.detail;
-  const id = item?.id ?? item?.data?.id ?? item?.model?.id;
-  if (graph && id) {
-    try {
-      const nodeData = graph.getNodeData(id);
-      return nodeData?.detail;
-    } catch (e) {
-      return undefined;
-    }
-  }
-  return undefined;
-};
-
-const getEventDetail = (event: any, graph?: Graph) => {
-  if (isCollapseTarget(event) || !isDetailTrigger(event)) return undefined;
-  const item = event?.item ?? event?.target ?? event?.items?.[0];
-  const data = getItemData(item);
-  if (data?.detail) return data.detail;
-
-  const id =
-    item?.id ??
-    item?.data?.id ??
-    item?.model?.id ??
-    event?.id ??
-    event?.target?.id ??
-    event?.currentTarget;
-
-  if (graph && id) {
-    try {
-      const nodeData = graph.getNodeData(id);
-      return nodeData?.detail;
-    } catch (e) {
-      return undefined;
-    }
-  }
-  return undefined;
-};
-
-function createClickTooltipPlugin(this: Graph) {
-  const dark = isDark.value;
-  const graph = this;
-
-  return {
-    key: CLICK_TOOLTIP_KEY,
-    type: 'tooltip' as const,
-    trigger: 'click' as const,
-    position: 'top-left',
-    offset: [15, 0],
-    // 允许鼠标进入tooltip，用于复制内容等交互
-    enterable: true,
-    style: {
-      ".tooltip": {
-        background: '#000000D9',
-        border: 'none',
-        borderRadius: '8px',
-        padding: '12px 16px',
-        maxWidth: '360px',
-        maxHeight: '400px',
-        overflowY: 'auto',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
-      },
-    },
-    enable(event: any) {
-      if (isCollapseTarget(event)) return false;
-      if (event?.detailTrigger) return true;
-      return isDetailTrigger(event) && Boolean(getEventDetail(event, graph));
-    },
-    getContent: (evt: any, items: any[]) => {
-      const nodeId =
-        evt?.data?.id ??
-        evt?.target?.id ??
-        items?.[0]?.id ??
-        items?.[0]?.model?.id ??
-        evt?.item?.id ??
-        evt?.item?.model?.id;
-
-      if (!nodeId) return '';
-
-      let detail = null;
-      try {
-        const nodeData = graph.getNodeData(nodeId);
-        detail = nodeData?.detail;
-      } catch (e) {
-        return '';
-      }
-
-      if (!detail) return '';
-
-      const textColor = '#FFFFFF';
-      const titleColor = '#FFFFFF';
-
-      return `
-        <div style="max-width: 360px; background: transparent; border: transparent; border-radius: 12px; font-size: 14px; line-height: 1.6; color: ${textColor}">
-          <div style="font-size: 14px; font-weight: 600; color: ${titleColor}; margin-bottom: 8px;">节点描述</div>
-          <div>${formatDetailToHtml(String(detail))}</div>
-        </div>
-      `;
-    },
-    onOpenChange() { },
-  };
-}
-
-
 // 全局变量存储 graph 实例引用（用于事件处理函数）
 let globalGraphInstance: Graph | null = null;
 
 // 生成节点 HTML 内容的函数
 const generateNodeHTML = (nodeData: any, isExpanded: boolean, hasChildren: boolean) => {
-
-  // 根据 label 内容动态计算节点高度
   const width = NODE_WIDTH;
   const height = calculateNodeHeight(nodeData.label);
   const colors = themeColors.value;
@@ -438,12 +343,9 @@ const generateNodeHTML = (nodeData: any, isExpanded: boolean, hasChildren: boole
   const iconOffset = DETAIL_ICON_SIZE + DETAIL_ICON_GAP;
   const availableWidth = width - (basePadding + iconOffset) - 20;
 
-  // 获取节点层级（depth），从 nodeData.style.depth 或 nodeData.depth 获取
   const depth = nodeData?.style?.depth ?? nodeData?.depth ?? 0;
-  // 第三级节点（depth >= 2，因为从0开始计数）开始不加粗
   const fontWeight = depth >= 2 ? 400 : 600;
 
-  // 标题文本
   const titleText = escapeHtml(String(nodeData.name || ''));
   const titleLeft = basePadding + iconOffset;
   const titleTop = 12;
@@ -463,7 +365,6 @@ const generateNodeHTML = (nodeData: any, isExpanded: boolean, hasChildren: boole
     line-height: 20px;
   `;
 
-  // 详情图标 SVG
   const detailIconSVG = `
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; cursor: pointer;">
       <path
@@ -484,7 +385,6 @@ const generateNodeHTML = (nodeData: any, isExpanded: boolean, hasChildren: boole
     </svg>
   `;
 
-  // 详情图标（和标题垂直居中对齐）
   const detailIconStyle = `
     position: absolute;
     left: ${basePadding}px;
@@ -500,21 +400,18 @@ const generateNodeHTML = (nodeData: any, isExpanded: boolean, hasChildren: boole
     const tagText = escapeHtml(String(nodeData.tag));
     const isCoreCashCow = tagText === '核心现金牛';
     const tagBg = isCoreCashCow ? colors.tagSpecialBg : colors.tagNormalBg;
-    const tagBorder = isCoreCashCow ? colors.tagSpecialBorder : colors.tagNormalBorder;
     const tagTextColor = isCoreCashCow ? colors.tagSpecialText : colors.tagNormalText;
 
-    // 估算标题文本宽度（中文字符按14px，英文字符按8.4px计算）
     const estimateTitleWidth = (text: string) => {
       let width = 0;
       for (const char of text) {
         const code = char.charCodeAt(0);
-        width += (code > 255) ? 14 : 8.4;
+        width += code > 255 ? 14 : 8.4;
       }
       return Math.min(width, availableWidth);
     };
     const titleWidth = estimateTitleWidth(nodeData.name || '');
 
-    // tag紧贴标题右侧，和标题水平对齐
     const tagLeft = titleLeft + titleWidth + TITLE_TAG_GAP;
     const tagTop = titleTop;
 
@@ -538,7 +435,6 @@ const generateNodeHTML = (nodeData: any, isExpanded: boolean, hasChildren: boole
     `;
   }
 
-  // 价格标签
   const priceText = escapeHtml(String(nodeData.label || ''));
   const labelWidth = width - LABEL_LEFT_PADDING - LABEL_RIGHT_PADDING;
 
@@ -558,7 +454,6 @@ const generateNodeHTML = (nodeData: any, isExpanded: boolean, hasChildren: boole
   // 折叠按钮（如果有子节点）
   let collapseButtonHTML = '';
   if (hasChildren) {
-    // 按钮位置：在节点卡片右侧中间
     const collapseButtonStyle = `
       position: absolute;
       right: -20px;
@@ -575,7 +470,6 @@ const generateNodeHTML = (nodeData: any, isExpanded: boolean, hasChildren: boole
       justify-content: center;
     `;
     const collapseIconColor = colors.collapseFill;
-    // 修复icon：使用正确的viewBox和坐标
     const collapseIcon = isExpanded
       ? `<line x1="3" y1="9" x2="15" y2="9" stroke="${collapseIconColor}" stroke-width="1.6" stroke-linecap="round" />`
       : `<line x1="3" y1="9" x2="15" y2="9" stroke="${collapseIconColor}" stroke-width="1.6" stroke-linecap="round" />
@@ -622,8 +516,8 @@ const generateNodeHTML = (nodeData: any, isExpanded: boolean, hasChildren: boole
   `;
 };
 
-// 全局事件处理函数
-(window as any).handleDetailIconClick = (event: MouseEvent, nodeId: string) => {
+// 公共 tooltip 展示逻辑（标题 & icon 共用）
+const commonShowDetailTooltip = (event: MouseEvent, nodeId: string) => {
   event.stopPropagation();
   event.preventDefault();
   if (!globalGraphInstance) return;
@@ -631,46 +525,41 @@ const generateNodeHTML = (nodeData: any, isExpanded: boolean, hasChildren: boole
   const nodeData = globalGraphInstance.getNodeData(nodeId);
   if (!nodeData?.detail) return;
 
-  const clickTooltip = globalGraphInstance.getPluginInstance(CLICK_TOOLTIP_KEY) as any;
-  if (clickTooltip && typeof clickTooltip.show === 'function') {
-    clickTooltip.hide?.();
-    clickTooltip.show({
-      detailTrigger: true,
-      target: { id: nodeId, type: 'node' },
-      targetType: 'node',
-      itemType: 'node',
-      item: { id: nodeId },
-      data: { id: nodeId },
-      client: { x: event.clientX, y: event.clientY },
-      clientX: event.clientX,
-      clientY: event.clientY,
-    });
-  }
+  const wrapper = wrapperRef.value;
+  if (!wrapper) return;
+
+  const wrect = wrapper.getBoundingClientRect();
+
+  // 把浏览器坐标转换为 wrapper 内部坐标
+  const localX = event.clientX - wrect.left;
+  const localY = event.clientY - wrect.top;
+
+  const isSameNode =
+    tooltip.value.visible && tooltip.value.nodeId === nodeId;
+
+  tooltip.value = {
+    visible: true,
+    x: localX,
+    y: localY,
+    html: `
+      <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">节点描述</div>
+      ${formatDetailToHtml(String(nodeData.detail))}
+    `,
+    nodeId,
+    key: isSameNode ? tooltip.value.key : tooltip.value.key + 1,
+  };
+};
+
+const hideTooltip = () => {
+  tooltip.value.visible = false;
+};
+
+(window as any).handleDetailIconClick = (event: MouseEvent, nodeId: string) => {
+  commonShowDetailTooltip(event, nodeId);
 };
 
 (window as any).handleTitleClick = (event: MouseEvent, nodeId: string) => {
-  event.stopPropagation();
-  event.preventDefault();
-  if (!globalGraphInstance) return;
-
-  const nodeData = globalGraphInstance.getNodeData(nodeId);
-  if (!nodeData?.detail) return;
-
-  const clickTooltip = globalGraphInstance.getPluginInstance(CLICK_TOOLTIP_KEY) as any;
-  if (clickTooltip && typeof clickTooltip.show === 'function') {
-    clickTooltip.hide?.();
-    clickTooltip.show({
-      detailTrigger: true,
-      target: { id: nodeId, type: 'node' },
-      targetType: 'node',
-      itemType: 'node',
-      item: { id: nodeId },
-      data: { id: nodeId },
-      client: { x: event.clientX, y: event.clientY },
-      clientX: event.clientX,
-      clientY: event.clientY,
-    });
-  }
+  commonShowDetailTooltip(event, nodeId);
 };
 
 (window as any).handleCollapseClick = async (nodeId: string) => {
@@ -681,23 +570,19 @@ const generateNodeHTML = (nodeData: any, isExpanded: boolean, hasChildren: boole
     const collapsed = nodeData?.style?.collapsed ?? false;
 
     if (collapsed) {
-      // expandElement 会自动处理布局和状态更新
       globalGraphInstance.expandElement(nodeId);
     } else {
-      // collapseElement 会自动处理布局和状态更新
       globalGraphInstance.collapseElement(nodeId);
     }
 
-    // 等待展开/收起操作完成，然后更新 HTML 并触发动画
-    // 参考：https://g6.antv.antgroup.com/manual/animation/custom-animation
     setTimeout(async () => {
       const updatedNodeData = globalGraphInstance?.getNodeData(nodeId);
       if (updatedNodeData) {
-        // 使用 updateNodeData 数组形式更新节点数据，参考文档示例
-        globalGraphInstance?.updateNodeData([{
-          ...updatedNodeData,
-        }]);
-        // 调用 draw() 触发更新动画
+        globalGraphInstance?.updateNodeData([
+          {
+            ...updatedNodeData,
+          },
+        ]);
         await globalGraphInstance?.draw();
       }
     }, 50);
@@ -706,23 +591,15 @@ const generateNodeHTML = (nodeData: any, isExpanded: boolean, hasChildren: boole
   }
 };
 
-// 现在使用 G6 内置的 Polyline 和 labelText，不需要自定义边类
-
 const graphRef = ref<Graph | null>(null);
 
-const initGraph = async () => {
-  // 如果没有数据，先获取数据
-  if (!chartData.value) {
-    await fetchChartData();
-  }
-
-  // 如果获取数据失败，使用默认数据或显示错误
+const initGraph = () => {
+  // 不在这里请求数据，只使用已有 chartData
   if (!chartData.value) {
     console.error('无法初始化图表：数据获取失败');
     return;
   }
 
-  // 创建一个变量来存储 graph 引用，用于布局函数中访问
   let graphInstance: Graph | null = null;
 
   const nodeHasChildrenMap = new Map<string, boolean>();
@@ -742,15 +619,11 @@ const initGraph = async () => {
     data: treeToGraphData(chartData.value, {
       getNodeData: (datum: any, depth: number) => {
         if (!datum.style) datum.style = {};
-
-        // 保存节点层级信息，用于生成 HTML 时判断标题粗细
         datum.style.depth = depth;
 
-        // 根据 label 内容动态计算节点高度
         const nodeHeight = calculateNodeHeight(datum.label);
         datum.style.size = [NODE_WIDTH, nodeHeight];
 
-        // 只在第4层及以后才默认折叠，让前三层都能正常显示
         datum.style.collapsed = depth >= 5;
         if (typeof datum.style.expanded === 'undefined') {
           datum.style.expanded = false;
@@ -760,17 +633,13 @@ const initGraph = async () => {
         return { ...restDatum, children: children.map((child: any) => child.id) } as any;
       },
       getEdgeData: (source, target) => {
-        // 如果目标节点有 rate 数据，则在边线终点显示百分比
-        // rate 只支持字符串类型（如 "33.0%"），如果为空值则不显示
         const rate = target?.rate;
         const edgeData: any = {
           source: source.id,
           target: target.id,
-          // 指定使用右端和左端的端口
           sourcePort: 'right',
           targetPort: 'left',
         };
-        // 只处理字符串类型且非空的 rate
         if (typeof rate === 'string' && rate.trim() !== '') {
           edgeData.style = {
             labelText: rate,
@@ -795,23 +664,16 @@ const initGraph = async () => {
           const hasChildren = nodeHasChildrenMap.get(nodeId) ?? false;
           return generateNodeHTML(nodeData, isExpanded, hasChildren);
         },
-        dx: () => {
-          return -NODE_WIDTH / 2;
-        },
+        dx: () => -NODE_WIDTH / 2,
         dy: (d: any) => {
           const nodeId = d.id;
           const nodeData = graphInstance?.getNodeData(nodeId) || d.data || d;
           const nodeHeight = calculateNodeHeight(nodeData.label);
           return -nodeHeight / 2;
         },
-        // 配置连接点：从右端中间位置延出
         ports: [
-          {
-            placement: 'right', // 右端中间位置
-          },
-          {
-            placement: 'left', // 左端中间位置（用于接收连接）
-          }
+          { placement: 'right' },
+          { placement: 'left' },
         ],
       },
     },
@@ -838,10 +700,9 @@ const initGraph = async () => {
     },
     layout: {
       type: 'dagre',
-      rankdir: 'LR', // 从左到右布局
-      ranksep: 110, // 层间距（LR 方向时是水平方向相邻层间距）
-      nodesep: 8, // 节点间距（LR 方向时是竖直方向间距）
-      // 动态计算节点大小，根据 label 内容计算高度
+      rankdir: 'LR',
+      ranksep: 110,
+      nodesep: 8,
       nodeSize: (node: any) => {
         if (!node || !graphInstance) return [NODE_WIDTH, NODE_MIN_HEIGHT];
         const nodeId = typeof node === 'string' ? node : node.id ?? node.data?.id;
@@ -855,36 +716,26 @@ const initGraph = async () => {
         }
       },
     },
-    plugins: [
-      function () {
-        return createClickTooltipPlugin.call(this);
-      },
-    ],
     behaviors: ['zoom-canvas', 'drag-canvas'],
   });
 
-  // 保存 graph 实例引用
   graphInstance = graph;
   globalGraphInstance = graph;
-
-  const hideClickTooltip = () => {
-    const clickTooltip = graph.getPluginInstance(CLICK_TOOLTIP_KEY) as any;
-    clickTooltip?.hide?.();
-  };
 
   graph.once(GraphEvent.AFTER_RENDER, () => {
     graph.fitView();
   });
 
-  // 监听节点展开/收起事件，更新 HTML 内容并触发动画
   const handleNodeExpandCollapse = async (nodeId: string) => {
     setTimeout(async () => {
       try {
         const nodeData = graph.getNodeData(nodeId);
         if (nodeData) {
-          graph.updateNodeData([{
-            ...nodeData,
-          }]);
+          graph.updateNodeData([
+            {
+              ...nodeData,
+            },
+          ]);
           await graph.draw();
         }
       } catch (e) {
@@ -907,17 +758,12 @@ const initGraph = async () => {
     }
   });
 
-  graph.on('tooltip:show', (evt: any) => {
-    if (!evt) return;
-    const sourceEvent = evt?.originalEvent ?? evt?.event ?? evt;
-    if (isCollapseTarget(sourceEvent)) {
-      evt?.preventDefault?.();
-      hideClickTooltip();
-    }
+  graph.on('canvas:click', () => {
+    hideTooltip();
   });
 
-  graph.on('canvas:click', () => {
-    hideClickTooltip();
+  graph.on(GraphEvent.AFTER_TRANSFORM, () => {
+    hideTooltip();
   });
 
   graph.render();
@@ -925,24 +771,24 @@ const initGraph = async () => {
 };
 
 const handleRefresh = async () => {
-  // 重新获取数据
+  hideTooltip();
   await fetchChartData();
   if (graphRef.value) {
     graphRef.value.destroy();
     graphRef.value = null;
   }
-  void initGraph();
+  initGraph();
 };
 
 const handleZoom = (ratio: number) => {
   const graph = graphRef.value;
   if (!graph) return;
-  void graph.zoomBy(ratio, undefined, graph.getViewportCenter());
+  graph.zoomBy(ratio, undefined, graph.getViewportCenter());
 };
 
 onMounted(async () => {
   await fetchChartData();
-  void initGraph();
+  initGraph();
 });
 
 onBeforeUnmount(() => {
@@ -950,11 +796,9 @@ onBeforeUnmount(() => {
   graphRef.value = null;
 });
 
-// 监听主题切换，重新初始化图谱
 watch(isDark, () => {
   handleRefresh();
 });
-
 </script>
 
 <style scoped>
@@ -962,46 +806,60 @@ watch(isDark, () => {
   width: 100%;
   height: 520px;
   border-radius: 16px;
-  background: #F2F5FA;
+  background: #f2f5fa;
   background-image: radial-gradient(#dbe1f5 1.5px, transparent 2px);
   background-size: 26px 26px;
 }
 
 .dark #container {
-  background: #09101F;
+  background: #09101f;
   background-image: radial-gradient(#3d4a647e 1.5px, transparent 2px);
   background-size: 26px 26px;
   border-radius: 16px;
 }
 
-/* 节点标题悬浮样式 - 黑白主题一致 */
 :deep(.detail-title:hover) {
-  color: #5261A7 !important;
+  color: #5261a7 !important;
   text-decoration: underline;
   opacity: 1 !important;
 }
 
-/* Tooltip优化样式 */
-:deep(.g6-tooltip) {
-  z-index: 9999 !important;
+/* 自定义 Tooltip 样式 */
+.g6-custom-tooltip {
+  position: absolute;
+  z-index: 9999;
+  pointer-events: auto;
 }
 
-/* 优化tooltip滚动条样式 */
-:deep(.g6-tooltip::-webkit-scrollbar) {
+.g6-custom-tooltip-inner {
+  background: #000000d9;
+  border-radius: 8px;
+  padding: 12px 16px;
+  max-width: 360px;
+  max-height: 300px;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  font-size: 14px;
+  line-height: 1.6;
+  color: #ffffff;
+}
+
+/* 优化 tooltip 滚动条样式 */
+.g6-custom-tooltip-inner::-webkit-scrollbar {
   width: 6px;
 }
 
-:deep(.g6-tooltip::-webkit-scrollbar-track) {
+.g6-custom-tooltip-inner::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 3px;
 }
 
-:deep(.g6-tooltip::-webkit-scrollbar-thumb) {
+.g6-custom-tooltip-inner::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.3);
   border-radius: 3px;
 }
 
-:deep(.g6-tooltip::-webkit-scrollbar-thumb:hover) {
+.g6-custom-tooltip-inner::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.5);
 }
 
@@ -1075,10 +933,28 @@ watch(isDark, () => {
   transform: translateY(-1px);
 }
 
-
 .insight-footer {
   font-size: 12px;
   color: #8a90ad;
   text-align: right;
+}
+
+/* 进入 / 离开过渡动画 */
+.tooltip-fade-enter-active,
+.tooltip-fade-leave-active {
+  transition: opacity 0.12s cubic-bezier(0.2, 0.8, 0.4, 1),
+    transform 0.12s cubic-bezier(0.2, 0.8, 0.4, 1);
+}
+
+.tooltip-fade-enter-from,
+.tooltip-fade-leave-to {
+  opacity: 0;
+  transform: translateY(4px) scale(0.98);
+}
+
+.tooltip-fade-enter-to,
+.tooltip-fade-leave-from {
+  opacity: 1;
+  transform: translateY(0) scale(1);
 }
 </style>
