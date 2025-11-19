@@ -29,7 +29,7 @@
     <!-- 左下角水印 -->
     <div class="absolute left-[14px] bottom-[14px] text-[11px] text-[#9FA9B5] black:text-[#768496] 
       pointer-events-none leading-[1.4] max-w-[260px] z-10">
-      <p>· 数据取自董事会经营综述、研报和互动易</p>
+      <p>· 数据取自董事会经营综述、研报和财报经营数据</p>
       <p>· 内容由 AI 生成</p>
     </div>
 
@@ -133,7 +133,7 @@ const tooltipStyle = computed(() => {
 });
 
 //测试开关：设置为 true 使用本地 config.json 数据，false 使用接口数据
-const USE_LOCAL_DATA = false;
+const USE_LOCAL_DATA = true;
 // 接口地址
 const API_URL =
   'https://yapi.myhexin.com/yapi/mock_v2/324758/basicapi/visual,/basicapi/visual/smart/dev,/basicapi/visual/ai_f10/request/v3/dispatch';
@@ -692,7 +692,7 @@ const initGraph = () => {
         labelFill: themeColors.value.edgeLabelFill,
         labelBackground: false,
         labelPadding: 0,
-        labelOffsetX: -15,
+        labelOffsetX: -13,
         labelOffsetY: -10,
         labelPlacement: 'end',
         labelAutoRotate: false,
@@ -701,7 +701,7 @@ const initGraph = () => {
     layout: {
       type: 'dagre',
       rankdir: 'LR',
-      ranksep: 110,
+      ranksep: 125,
       nodesep: 8,
       nodeSize: (node: any) => {
         if (!node || !graphInstance) return [NODE_WIDTH, NODE_MIN_HEIGHT];
@@ -777,6 +777,11 @@ const handleRefresh = async () => {
     graphRef.value.destroy();
     graphRef.value = null;
   }
+  // 清空容器，确保旧的画布元素被完全移除
+  const container = document.getElementById('container');
+  if (container) {
+    container.innerHTML = '';
+  }
   initGraph();
 };
 
@@ -792,8 +797,22 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
-  graphRef.value?.destroy();
-  graphRef.value = null;
+  if (graphRef.value) {
+    graphRef.value.destroy();
+    graphRef.value = null;
+  }
+
+  const win = window as any;
+  // 使用 delete 操作符彻底移除引用
+  delete win.handleDetailIconClick;
+  delete win.handleTitleClick;
+  delete win.handleCollapseClick;
+
+  // 清空容器，确保旧的画布元素被完全移除
+  const container = document.getElementById('container');
+  if (container) {
+    container.innerHTML = '';
+  }
 });
 
 watch(isDark, () => {
