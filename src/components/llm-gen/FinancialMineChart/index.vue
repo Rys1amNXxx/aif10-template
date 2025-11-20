@@ -204,6 +204,9 @@ const themeColors = computed(() => {
       tagSpecialBg: '#FD20331F',
       tagSpecialBorder: '#FF2436',
       tagSpecialText: '#FD2033',
+      // 潜力孵化业务
+      tagPotentialBg: 'rgba(7, 171, 75, 0.12)',
+      tagPotentialText: '#07AB4B',
       // 折叠按钮
       collapseBg: '#1D273F',
       collapseBorder: '#374152',
@@ -229,6 +232,9 @@ const themeColors = computed(() => {
       tagSpecialBg: '#FD20331F',
       tagSpecialBorder: '#FF4D4F',
       tagSpecialText: '#FD2033',
+      // 潜力孵化业务
+      tagPotentialBg: 'rgba(7, 171, 75, 0.12)',
+      tagPotentialText: '#07AB4B',
       // 折叠按钮
       collapseBg: '#FFFFFF',
       collapseBorder: '#EBEDF0',
@@ -399,8 +405,18 @@ const generateNodeHTML = (nodeData: any, isExpanded: boolean, hasChildren: boole
   if (nodeData.tag) {
     const tagText = escapeHtml(String(nodeData.tag));
     const isCoreCashCow = tagText === '核心现金牛';
-    const tagBg = isCoreCashCow ? colors.tagSpecialBg : colors.tagNormalBg;
-    const tagTextColor = isCoreCashCow ? colors.tagSpecialText : colors.tagNormalText;
+    const isPotential = tagText === '潜力孵化业务';
+
+    let tagBg = colors.tagNormalBg;
+    let tagTextColor = colors.tagNormalText;
+
+    if (isCoreCashCow) {
+      tagBg = colors.tagSpecialBg;
+      tagTextColor = colors.tagSpecialText;
+    } else if (isPotential) {
+      tagBg = colors.tagPotentialBg;
+      tagTextColor = colors.tagPotentialText;
+    }
 
     const estimateTitleWidth = (text: string) => {
       let width = 0;
@@ -692,7 +708,7 @@ const initGraph = () => {
         labelFill: themeColors.value.edgeLabelFill,
         labelBackground: false,
         labelPadding: 0,
-        labelOffsetX: -13,
+        labelOffsetX: -10,
         labelOffsetY: -10,
         labelPlacement: 'end',
         labelAutoRotate: false,
