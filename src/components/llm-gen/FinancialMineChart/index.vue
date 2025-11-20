@@ -65,6 +65,9 @@ import { Graph, GraphEvent, iconfont, treeToGraphData } from '@antv/g6';
 import { post } from '@/common/services/request';
 import localConfigData from './config.json';
 
+// 生成组件唯一ID
+const componentId = `chart_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
 // 主题监听
 const isDark = useDark();
 
@@ -492,7 +495,7 @@ const generateNodeHTML = (nodeData: any, isExpanded: boolean, hasChildren: boole
          <line x1="9" y1="3" x2="9" y2="15" stroke="${collapseIconColor}" stroke-width="1.6" stroke-linecap="round" />`;
 
     collapseButtonHTML = `
-      <div class="collapse-button" style="${collapseButtonStyle}" onclick="handleCollapseClick('${nodeData.id}')">
+      <div class="collapse-button" style="${collapseButtonStyle}" onclick="handleCollapseClick_${componentId}('${nodeData.id}')">
         <svg width="18" height="18" viewBox="0 0 18 18" style="display: block;">
           ${collapseIcon}
         </svg>
@@ -511,12 +514,12 @@ const generateNodeHTML = (nodeData: any, isExpanded: boolean, hasChildren: boole
       box-sizing: border-box;
     ">
       <!-- 详情图标 -->
-      <div class="detail-icon" style="${detailIconStyle}" onclick="handleDetailIconClick(event, '${nodeData.id}')">
+      <div class="detail-icon" style="${detailIconStyle}" onclick="handleDetailIconClick_${componentId}(event, '${nodeData.id}')">
         ${detailIconSVG}
       </div>
       
       <!-- 标题文本 -->
-      <div class="detail-title" style="${titleStyle}" onclick="handleTitleClick(event, '${nodeData.id}')">
+      <div class="detail-title" style="${titleStyle}" onclick="handleTitleClick_${componentId}(event, '${nodeData.id}')">
         ${titleText}
       </div>
       
@@ -570,15 +573,16 @@ const hideTooltip = () => {
   tooltip.value.visible = false;
 };
 
-(window as any).handleDetailIconClick = (event: MouseEvent, nodeId: string) => {
+// 使用唯一ID注册全局函数，避免命名冲突
+(window as any)[`handleDetailIconClick_${componentId}`] = (event: MouseEvent, nodeId: string) => {
   commonShowDetailTooltip(event, nodeId);
 };
 
-(window as any).handleTitleClick = (event: MouseEvent, nodeId: string) => {
+(window as any)[`handleTitleClick_${componentId}`] = (event: MouseEvent, nodeId: string) => {
   commonShowDetailTooltip(event, nodeId);
 };
 
-(window as any).handleCollapseClick = async (nodeId: string) => {
+(window as any)[`handleCollapseClick_${componentId}`] = async (nodeId: string) => {
   if (!globalGraphInstance) return;
 
   try {
@@ -819,10 +823,10 @@ onBeforeUnmount(() => {
   }
 
   const win = window as any;
-  // 使用 delete 操作符彻底移除引用
-  delete win.handleDetailIconClick;
-  delete win.handleTitleClick;
-  delete win.handleCollapseClick;
+  // 使用唯一ID清理对应的全局函数，避免内存泄漏
+  delete win[`handleDetailIconClick_${componentId}`];
+  delete win[`handleTitleClick_${componentId}`];
+  delete win[`handleCollapseClick_${componentId}`];
 
   // 清空容器，确保旧的画布元素被完全移除
   const container = document.getElementById('container');
