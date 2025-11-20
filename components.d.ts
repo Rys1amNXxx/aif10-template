@@ -14,6 +14,7 @@ declare module 'vue' {
     FinancialMineChart: typeof import('./src/components/llm-gen/FinancialMineChart/index.vue')['default']
     GenModule: typeof import('./src/components/llm-gen/GenModule/index.vue')['default']
     Holder: typeof import('./src/components/llm-gen/Holder/index.vue')['default']
+    MainBussiness: typeof import('./src/components/llm-gen/MainBussiness/index.vue')['default']
     Reset: typeof import('./src/components/icons/Reset.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']

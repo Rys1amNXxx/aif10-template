@@ -27,7 +27,7 @@ function verifierData(view: View, visualIndex: number) {
   if (view.visual && view.visual.output[visualIndex].type === 'default' && !view.visual.data.length) {
     return false;
   }
-  
+
   return true;
 }
 

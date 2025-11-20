@@ -1,3 +1,4 @@
+import MainBussiness from '@/components/llm-gen/MainBussiness/config.json'
 import GenModule from '@/components/llm-gen/GenModule/config.json'
 
 export const mockData = {
@@ -35,24 +36,9 @@ export const mockData = {
                     "features": [],
                     "output": [
                         {
-                            "name": "FinancialMineChart",
+                            "name": "MainBussiness",
                             "type": "llmgen",
-                            "parameter": [
-                                {
-                                    "type": "bar",
-                                    "encoding": {
-                                        "x": "变动日期",
-                                        "y": "股东总户数"
-                                    }
-                                },
-                                {
-                                    "type": "line",
-                                    "encoding": {
-                                        "x": "变动日期",
-                                        "y": "收盘价(元)"
-                                    }
-                                }
-                            ],
+                            "parameter": [],
                             "style": {
                                 "yAxis": {
                                     "type": "value",
@@ -66,7 +52,7 @@ export const mockData = {
                                     "position": "top"
                                 }
                             },
-                            "extension": GenModule
+                            "extension": MainBussiness
                         }
                     ],
                     "index": -1

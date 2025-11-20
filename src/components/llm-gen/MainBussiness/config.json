@@ -1,0 +1,75 @@
+{
+  "emitEvent": true,
+  "fitHeight": true,
+  "apis": [
+    {
+      "method": "get",
+      "isFirstScreen": true,
+      "alias": "tabs",
+      "url": "https://data.10jqka.com.cn/basicapi/operate/mainbusiness/v1/tabs",
+      "params": {
+        "code": "${code}",
+        "market": "${market}",
+        "locale": "zh_CN",
+        "noWithCredentials": 1
+      },
+      "returnValExample": {
+        "tabs": [
+          { "id": "revenue", "name": "营业收入" },
+          { "id": "cost", "name": "营业成本" },
+          { "id": "profit", "name": "利润总额" }
+        ]
+      }
+    },
+    {
+      "method": "post",
+      "isFirstScreen": true,
+      "alias": "composition",
+      "depends": ["tabs"],
+      "url": "https://data.10jqka.com.cn/basicapi/visual/smart/index/v1/visual",
+      "params": {
+        "config_id": "main_business_composition_fetcher",
+        "subjects": ["${market}-${code}"],
+        "engine": "default",
+        "strategy": "newest",
+        "source": "http_custom",
+        "extensions": {
+          "tab_id": "${tabs[0].id}"
+        }
+      },
+      "returnValExample": {
+        "charts": {
+          "industry": {
+            "data": [
+              {
+                "values": [
+                  { "name": "整车业务", "value": 5023.36 },
+                  { "name": "零部件业务", "value": 1828.25 }
+                ]
+              }
+            ],
+            "view": {
+              "main": {
+                "layers": [
+                  {
+                    "type": "pie",
+                    "encoding": { "x": "name", "y": "value" },
+                    "radius": ["35%", "60%"]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "table": {
+          "columns": [
+            { "key": "businessName", "label": "业务名称" },
+            { "key": "revenue", "label": "营业收入（元）" }
+          ],
+          "rows": [{ "businessName": "整车业务", "revenue": 5023.36 }],
+          "unit": "亿"
+        }
+      }
+    }
+  ]
+}
