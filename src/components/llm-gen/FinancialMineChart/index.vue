@@ -56,14 +56,44 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch, nextTick } from 'vue';
 import { useDark } from '@vueuse/core';
+import axios from 'axios';
+import { processUrl, processParams } from '@/common/utils/params-processor';
 import ResetIcon from '@/components/icons/Reset.vue';
 import ZoomInIcon from '@/components/icons/zoomIn.vue';
 import ZoomOutIcon from '@/components/icons/zoomOut.vue';
 import { Graph, GraphEvent, iconfont, treeToGraphData } from '@antv/g6';
-import { post } from '@/common/services/request';
 import localConfigData from './config.json';
+
+// Props 定义
+interface Props {
+  params: {
+    apis: Array<{
+      method: string;
+      isFirstScreen: boolean;
+      alis: string;
+      url: string;
+      params: Record<string, any>;
+      depends?: string[];
+    }>;
+    view?: any[];
+    token?: string;
+    hook?: Function;
+    [key: string]: any;
+  };
+  data?: any;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  params: () => localConfigData as any,
+  data: undefined
+});
+
+// 获取 URL 参数
+const code = window.F10Utils.getUrlParams('code') || '';
+const market = window.F10Utils.getUrlParams('market') || '';
+const seq = window.F10Utils.getUrlParams('seq') || '';
 
 // 生成组件唯一ID
 const componentId = `chart_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
@@ -135,40 +165,64 @@ const tooltipStyle = computed(() => {
   };
 });
 
-//测试开关：设置为 true 使用本地 config.json 数据，false 使用接口数据
+//测试开关：设置为 true 使用本地 mock 数据，false 使用接口数据
 const USE_LOCAL_DATA = true;
-// 接口地址
-const API_URL =
-  'https://yapi.myhexin.com/yapi/mock_v2/324758/basicapi/visual,/basicapi/visual/smart/dev,/basicapi/visual/ai_f10/request/v3/dispatch';
+// 是否首次渲染标记
+const isFirstRender = ref(true);
 
 // 获取接口数据
 const fetchChartData = async () => {
+  console.log('fetchChartData 开始执行');
+  console.log('props.params:', props.params);
+  console.log('URL 参数 - code:', code, 'market:', market, 'seq:', seq);
+
+  // 如果是第一次渲染且有初始数据，直接使用
+  if (isFirstRender.value && props.data) {
+    console.log('使用初始数据');
+    chartData.value = props.data;
+    isFirstRender.value = false;
+    return;
+  }
+
+  // 如果使用本地数据，直接使用 config.json 的 mockData
+  if (USE_LOCAL_DATA) {
+    console.log('使用本地 mock 数据');
+    loading.value = false;
+    chartData.value = (localConfigData as any).mockData || localConfigData;
+    return;
+  }
+
   loading.value = true;
   error.value = null;
 
   try {
-    // 如果使用本地数据，直接使用 config.json
-    if (USE_LOCAL_DATA) {
-      loading.value = false;
-      chartData.value = localConfigData;
+    const api = props.params.apis?.find(api => api.alis === 'financialMineChart');
+    if (!api) {
+      console.error('未找到 financialMineChart API 配置');
+      error.value = '配置错误：未找到 API 配置';
       return;
     }
 
-    // 否则从接口获取数据
-    const response = await post({
-      url: API_URL,
-      data: {},
-      beforeRequest: () => {
-        // console.log('开始请求财务图谱数据...');
-      },
-      afterRequest: () => {
-        loading.value = false;
-      },
+    console.log('找到 API 配置:', api);
+
+    const url = processUrl(api.url);
+    const method = api.method.toLowerCase();
+    const params = processParams(api.params);
+
+    console.log('请求参数:', { method, url, params });
+
+    const response = await axios({
+      method,
+      url,
+      params: method === 'get' ? params : undefined,
+      data: method !== 'get' ? params : undefined
     });
 
-    if (response.status_code === 0 || response.status_code === 200) {
+    console.log('API 响应:', response.data);
+
+    if (response.data.status_code === 0 || response.data.status_code === 200) {
       const resultData =
-        response.data?.result?.view_wrapper?.views?.[0]?.visual?.data?.[0]?.data;
+        response.data?.data?.result?.view_wrapper?.views?.[0]?.visual?.data?.[0]?.data;
 
       if (resultData) {
         chartData.value = resultData;
@@ -177,8 +231,8 @@ const fetchChartData = async () => {
         console.error('数据结构异常:', response.data);
       }
     } else {
-      error.value = response.status_msg || '数据加载失败';
-      console.error('请求失败:', response);
+      error.value = response.data.status_msg || '数据加载失败';
+      console.error('请求失败:', response.data);
     }
   } catch (err: any) {
     error.value = err.message || '网络请求失败，请稍后重试';
@@ -835,6 +889,21 @@ onBeforeUnmount(() => {
   }
 });
 
+// 监听外部数据变化
+watch(() => props.data, (newVal) => {
+  console.log('props.data 变化:', newVal);
+  if (newVal) {
+    chartData.value = newVal;
+    initGraph();
+  }
+}, { deep: true });
+
+// 监听 params 变化
+watch(() => props.params, (newVal) => {
+  console.log('props.params 变化:', newVal);
+}, { deep: true, immediate: false });
+
+// 监听主题变化
 watch(isDark, () => {
   handleRefresh();
 });

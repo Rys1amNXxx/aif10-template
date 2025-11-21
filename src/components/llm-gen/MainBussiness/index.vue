@@ -1,6 +1,14 @@
 <template>
   <div class="w-full flex flex-col gap-4">
-    <div class="flex flex-wrap items-center justify-between gap-3">
+    <!-- 下拉菜单和按钮组在同一行 -->
+    <div class="flex items-center gap-3">
+      <div class="radio-container flex-1" v-loading="tabsLoading">
+        <el-radio-group v-model="activeTabId" class="radio-button-group" :disabled="tabsLoading">
+          <el-radio-button v-for="tab in tabs" :key="tab.id" :label="tab.id">
+            {{ tab.label }}
+          </el-radio-button>
+        </el-radio-group>
+      </div>
       <button type="button" class="report-select" @click="cycleReport">
         <span>{{ selectedReport }}</span>
         <svg class="h-4 w-4 text-slate-500" viewBox="0 0 16 16" fill="none">
@@ -10,25 +18,9 @@
       </button>
     </div>
 
-    <div class="rounded-xl border-slate-200/80 bg-white/80 shadow-sm dark:border-slate-700 dark:bg-slate-900/70">
-      <div class="flex flex-col gap-3">
-        <div class="radio-container" v-loading="tabsLoading">
-          <el-radio-group v-model="activeTabId" class="radio-button-group" :disabled="tabsLoading">
-            <el-radio-button v-for="tab in tabs" :key="tab.id" :label="tab.id">
-              {{ tab.label }}
-            </el-radio-button>
-          </el-radio-group>
-        </div>
-      </div>
-    </div>
-
     <div class="grid grid-cols-1 gap-4 xl:grid-cols-3">
       <div v-for="panel in chartPanels" :key="panel.key"
-        class="rounded-xl border border-slate-200/80 bg-white/80 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/70">
-        <div class="flex items-center justify-between text-sm">
-          <span class="font-medium text-slate-700 dark:text-slate-100">{{ panel.title }}</span>
-          <span class="text-xs text-slate-400">{{ activeTabLabel }}</span>
-        </div>
+        class="rounded-xl border-slate-200/80 bg-white/80 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/70">
         <div class="relative mt-4 h-[220px]">
           <div v-if="chartLoading" class="absolute inset-0 flex items-center justify-center text-xs text-slate-400">
             图表加载中…
@@ -42,13 +34,8 @@
       </div>
     </div>
 
-    <div
-      class="rounded-xl border border-slate-200/80 bg-white/80 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/70">
+    <div class="rounded-xl border-slate-200/80 bg-white/80 shadow-sm dark:border-slate-700 dark:bg-slate-900/70">
       <div class="mb-3 flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <p class="text-base font-semibold text-slate-900 dark:text-slate-50">构成明细</p>
-          <p class="text-xs text-slate-500 dark:text-slate-400">单位：{{ tableUnit || '亿' }}</p>
-        </div>
       </div>
       <div v-if="tableRows.length" class="overflow-x-auto">
         <table
@@ -472,9 +459,9 @@ function createMockPayload(centerTitle: string, total: number, scale: number): C
   const pieValues = getMockPieValues(scale);
   return {
     charts: {
-      industry: createPieChartConfig(centerTitle, `${total.toFixed(2)}亿`, pieValues.industry),
-      product: createPieChartConfig(centerTitle, `${total.toFixed(2)}亿`, pieValues.product),
-      region: createPieChartConfig(centerTitle, `${total.toFixed(2)}亿`, pieValues.region)
+      industry: createPieChartConfig('按行业分', `${total.toFixed(2)}亿`, pieValues.industry),
+      product: createPieChartConfig('按产品分', `${total.toFixed(2)}亿`, pieValues.product),
+      region: createPieChartConfig('按地区分', `${total.toFixed(2)}亿`, pieValues.region)
     },
     table: {
       columns: baseTableColumns,
@@ -519,7 +506,7 @@ function createPieChartConfig(centerTitle: string, centerValue: string, values: 
       main: {
         title: [
           {
-            text: `{mainTitle|${centerTitle}}\n{subTitle|${centerValue}}`,
+            text: `{mainTitle|${centerTitle}}`,
             left: 'center',
             top: 'center',
             textStyle: {
@@ -527,8 +514,7 @@ function createPieChartConfig(centerTitle: string, centerValue: string, values: 
               color: '#6B7280',
               lineHeight: 18,
               rich: {
-                mainTitle: { fontSize: 12, color: 'rgba(0,0,0,0.6)', lineHeight: 16 },
-                subTitle: { fontSize: 18, fontWeight: 600, color: '#111827', lineHeight: 24 }
+                mainTitle: { fontSize: 12, color: 'rgba(0,0,0,0.6)', lineHeight: 16, fontWeight: 600 },
               }
             }
           }
@@ -666,15 +652,21 @@ watch(
 }
 
 .radio-button-group :deep(.el-radio-button__inner) {
-  border-radius: 0.375rem;
+  border-radius: 4px;
   border: 1px solid transparent;
   background-color: #ffffff;
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
+  font-size: 12px;
   font-weight: 500;
   color: #475569;
   box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
   transition: background-color 0.2s ease;
+  height: 26px;
+  width: 68px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
 }
 
 .radio-button-group :deep(.el-radio-button__inner:hover) {

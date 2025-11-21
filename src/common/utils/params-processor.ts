@@ -1,16 +1,16 @@
 // 递归获取嵌套对象的值
 export const getNestedValue = (obj: any, path: string): any => {
   if (!obj) return undefined;
-  
+
   // 将路径分割成访问序列
   const parts = path.split(/\.|\[|\]/).filter(Boolean);
   let current = obj;
-  
+
   for (const part of parts) {
     if (current === undefined || current === null) {
       return undefined;
     }
-    
+
     // 如果part是数字，说明是数组索引
     const index = parseInt(part);
     if (!isNaN(index)) {
@@ -22,7 +22,7 @@ export const getNestedValue = (obj: any, path: string): any => {
       current = current[part];
     }
   }
-  
+
   return current;
 };
 
@@ -31,6 +31,7 @@ interface BaseParams {
   code: string;
   market: string;
   codeName: string;
+  seq: string;
   [key: string]: any;
 }
 
@@ -39,7 +40,8 @@ export const getBaseParams = (): BaseParams => {
   const code = window.F10Utils.getUrlParams('code') || '300033';
   const market = window.F10Utils.getUrlParams('market') || '33';
   const codeName = window.F10Utils.getUrlParams('codeName') || '';
-  return { code, market, codeName };
+  const seq = window.F10Utils.getUrlParams('seq') || '';
+  return { code, market, codeName, seq };
 };
 
 // 处理URL参数替换
@@ -47,7 +49,7 @@ export const processUrl = (url: string, params: Record<string, any> = {}, apiDat
   let processedUrl = url;
   const baseParams = getBaseParams();
   const allParams = { ...baseParams, ...params };
-  
+
   // 替换URL中的变量，如 ${code} 等
   Object.keys(allParams).forEach(key => {
     const pattern = new RegExp(`\\$\\{${key}\\}`, 'g');
@@ -61,7 +63,7 @@ export const processParams = (apiParams: Record<string, any>, apiData?: Record<s
   const result: Record<string, any> = {};
   const defaultBaseParams = getBaseParams();
   const finalBaseParams = { ...defaultBaseParams, ...baseParams };
-  
+
   Object.entries(apiParams).forEach(([key, value]) => {
     // 如果是数组，保持数组结构
     if (Array.isArray(value)) {
@@ -72,14 +74,14 @@ export const processParams = (apiParams: Record<string, any>, apiData?: Record<s
             let processedValue = item;
             matches.forEach(match => {
               const paramKey = match.slice(2, -1);
-              
+
               // 尝试从基础参数中获取值
               const baseValue = getNestedValue(finalBaseParams, paramKey);
               if (baseValue !== undefined) {
                 processedValue = processedValue.replace(match, String(baseValue));
                 return;
               }
-              
+
               // 尝试从API数据中获取值
               if (apiData) {
                 const apiValue = getNestedValue(apiData, paramKey);
@@ -100,14 +102,14 @@ export const processParams = (apiParams: Record<string, any>, apiData?: Record<s
         let processedValue = value;
         matches.forEach(match => {
           const paramKey = match.slice(2, -1); // 去掉${}
-          
+
           // 尝试从基础参数中获取值
           const baseValue = getNestedValue(finalBaseParams, paramKey);
           if (baseValue !== undefined) {
             processedValue = processedValue.replace(match, String(baseValue));
             return;
           }
-          
+
           // 尝试从API数据中获取值
           if (apiData) {
             const apiValue = getNestedValue(apiData, paramKey);
@@ -126,6 +128,6 @@ export const processParams = (apiParams: Record<string, any>, apiData?: Record<s
       result[key] = value;
     }
   });
-  
+
   return result;
 }; 
