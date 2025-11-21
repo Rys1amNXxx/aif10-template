@@ -12,7 +12,7 @@
       <el-dropdown @command="handleReportChange" trigger="click">
         <button type="button" class="report-select">
           <span>{{ selectedReport }}</span>
-          <DropdownArrow class="text-slate-500 rotate-180" />
+          <DropdownArrow class="text-text-11 black:text-text-02-01-dark rotate-180" />
         </button>
         <template #dropdown>
           <el-dropdown-menu>
@@ -27,12 +27,13 @@
 
     <div class="grid grid-cols-1 gap-4 xl:grid-cols-3">
       <div v-for="panel in chartPanels" :key="panel.key" class="rounded-xl">
-        <div class="relative mt-4 h-[220px]">
-          <div v-if="chartLoading" class="absolute inset-0 flex items-center justify-center text-xs text-slate-400">
+        <div class="relative h-[220px]">
+          <div v-if="chartLoading"
+            class="absolute inset-0 flex items-center justify-center text-xs text-text-04 black:text-text-04-dark">
             图表加载中…
           </div>
           <div v-else-if="!chartConfigs[panel.key]"
-            class="absolute inset-0 flex items-center justify-center text-xs text-slate-400">
+            class="absolute inset-0 flex items-center justify-center text-xs text-text-04 black:text-text-04-dark">
             暂无数据
           </div>
           <div class="h-full" :ref="el => setChartRef(panel.key, el as HTMLElement)"></div>
@@ -40,23 +41,24 @@
       </div>
     </div>
 
-    <div class="rounded-xl border-slate-200/80 bg-white/80 shadow-sm dark:border-slate-700 dark:bg-slate-900/70">
+    <div
+      class="rounded-xl border border-border-03 bg-background-01 shadow-sm black:border-border-03-dark black:bg-background-01-dark p-4">
       <div v-if="tableRows.length" class="overflow-x-auto">
         <table
-          class="min-w-full divide-y divide-slate-200 text-xs text-slate-600 dark:divide-slate-700 dark:text-slate-200">
-          <thead class="bg-slate-50/80 dark:bg-slate-800/60">
+          class="min-w-full divide-y divide-border-03 text-xs text-text-02-01 black:divide-border-03-dark black:text-text-02-01-dark">
+          <thead class="bg-background-03 black:bg-background-03-dark">
             <tr>
               <th v-for="column in tableColumns" :key="column.key" :class="[
-                'px-4 py-2 font-medium text-slate-500 uppercase tracking-wide dark:text-slate-400',
+                'px-4 py-2 font-medium text-text-04 black:text-text-04-dark uppercase tracking-wide',
                 column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : 'text-left'
               ]">
                 {{ column.label }}
               </th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+          <tbody class="divide-y divide-border-03 black:divide-border-03-dark">
             <tr v-for="(row, rowIndex) in tableRows" :key="`${row.businessName}-${rowIndex}`"
-              class="hover:bg-slate-50/70 dark:hover:bg-slate-800/50">
+              class="hover:bg-background-03 black:hover:bg-background-03-dark">
               <td v-for="column in tableColumns" :key="`${column.key}-${rowIndex}`"
                 :class="['px-4 py-2', cellAlignClass(column.align)]">
                 <span v-if="column.valueType === 'amount'">{{ formatAmount(row[column.key]) }}</span>
@@ -68,7 +70,7 @@
         </table>
       </div>
       <div v-else
-        class="flex h-32 items-center justify-center rounded-lg border border-dashed border-slate-200 text-sm text-slate-400 dark:border-slate-700">
+        class="flex h-32 items-center justify-center rounded-lg border border-dashed border-border-03 text-sm text-text-04 black:border-border-03-dark black:text-text-04-dark">
         暂无明细数据
       </div>
     </div>
@@ -600,40 +602,49 @@ watch(
 </script>
 
 <style scoped>
+/* 下拉菜单按钮 */
 .report-select {
-  display: inline-flex;
+  display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 0.5rem;
-  border-radius: 0.5rem;
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  background-color: rgba(255, 255, 255, 0.7);
-  padding: 0.375rem 0.75rem;
-  font-size: 0.875rem;
+  gap: 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(224,228,234,1);
+  background-color: var(--background-01);
+  font-size: 12px;
   line-height: 1.25rem;
-  font-weight: 500;
-  color: #475569;
-  box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  font-weight: 400;
+  color: #2A354E;
   transition: all 0.2s ease;
+  width:86px;
+  height: 26px;
 }
 
 .report-select:hover {
-  background-color: rgba(248, 250, 252, 1);
+  background-color: var(--background-03);
 }
 
 :global(.dark) .report-select {
-  border-color: rgba(51, 65, 85, 0.8);
-  background-color: rgba(15, 23, 42, 0.6);
-  color: #e2e8f0;
+  box-shadow: 0 1px 2px 0 rgba(255, 255, 255, 0.05);
 }
 
-:global(.dark) .report-select:hover {
-  background-color: rgba(30, 41, 59, 0.8);
+/* 下拉菜单选中项样式 */
+:deep(.el-dropdown-menu__item.is-active) {
+  background-color: var(--background-07);
+  color: var(--text-05);
+  font-weight: 500;
 }
 
+:global(.dark) :deep(.el-dropdown-menu__item.is-active) {
+  background-color: var(--background-07-dark);
+  color: var(--text-05-dark);
+}
+
+/* 按钮组容器 */
 .radio-container {
   overflow-x: auto;
   border-radius: 0.5rem;
-  background-color: transparent;
+  background-color: var(--background-03);
   padding: 0.25rem;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -644,8 +655,7 @@ watch(
 }
 
 :global(.dark) .radio-container {
-  border-color: #334155;
-  background-color: rgba(30, 41, 59, 0.6);
+  background-color: var(--background-03-dark);
 }
 
 .radio-button-group {
@@ -654,14 +664,15 @@ watch(
   gap: 0.5rem;
 }
 
+/* 按钮样式 */
 .radio-button-group :deep(.el-radio-button__inner) {
   border-radius: 4px;
-  border: 1px solid transparent;
-  background-color: #ffffff;
+  border: 1px solid rgba(224, 228, 234, 1);
+  background-color: var(--background-00);
   font-size: 12px;
-  font-weight: 500;
-  color: #475569;
-  box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  font-weight: 400;
+  color: #2A354E;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   transition: background-color 0.2s ease;
   height: 26px;
   width: 68px;
@@ -673,34 +684,30 @@ watch(
 }
 
 .radio-button-group :deep(.el-radio-button__inner:hover) {
-  background-color: rgba(248, 250, 252, 1);
+  background-color: var(--background-03);
 }
 
 .radio-button-group :deep(.el-radio-button.is-active .el-radio-button__inner) {
-  background-color: rgba(238, 242, 255, 1);
-  color: #4338ca;
-  box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.4);
-  border-color: transparent;
+  background-color: #E7EAFA;
+  color: #636FFF;
+  box-shadow: inset 0 0 0 1px var(--border-04);
+  border-color: #636FFF;
 }
 
+/* 暗色主题 */
 :global(.dark) .radio-button-group :deep(.el-radio-button__inner) {
-  background-color: #0f172a;
-  color: #e2e8f0;
+  background-color: var(--background-00-dark);
+  color: var(--text-03-dark);
+  box-shadow: 0 1px 2px 0 rgba(255, 255, 255, 0.05);
 }
 
 :global(.dark) .radio-button-group :deep(.el-radio-button__inner:hover) {
-  background-color: #1e293b;
+  background-color: var(--background-03-dark);
 }
 
 :global(.dark) .radio-button-group :deep(.el-radio-button.is-active .el-radio-button__inner) {
-  background-color: rgba(74, 97, 214, 0.25);
-  color: #c7d2fe;
-}
-
-/* 下拉菜单选中项样式 */
-:deep(.el-dropdown-menu__item.is-active) {
-  background-color: rgba(238, 242, 255, 1);
-  color: #4338ca;
-  font-weight: 500;
+  background-color: var(--background-07-dark);
+  color: var(--text-05-dark);
+  box-shadow: inset 0 0 0 1px var(--border-04-dark);
 }
 </style>
