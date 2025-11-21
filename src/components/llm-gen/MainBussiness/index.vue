@@ -9,18 +9,24 @@
           </el-radio-button>
         </el-radio-group>
       </div>
-      <button type="button" class="report-select" @click="cycleReport">
-        <span>{{ selectedReport }}</span>
-        <svg class="h-4 w-4 text-slate-500" viewBox="0 0 16 16" fill="none">
-          <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
-            stroke-linejoin="round" />
-        </svg>
-      </button>
+      <el-dropdown @command="handleReportChange" trigger="click">
+        <button type="button" class="report-select">
+          <span>{{ selectedReport }}</span>
+          <DropdownArrow class="text-slate-500 rotate-180" />
+        </button>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item v-for="report in reportOptions" :key="report" :command="report"
+              :class="{ 'is-active': selectedReport === report }">
+              {{ report }}
+            </el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
     </div>
 
     <div class="grid grid-cols-1 gap-4 xl:grid-cols-3">
-      <div v-for="panel in chartPanels" :key="panel.key"
-        class="rounded-xl border-slate-200/80 bg-white/80 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/70">
+      <div v-for="panel in chartPanels" :key="panel.key" class="rounded-xl">
         <div class="relative mt-4 h-[220px]">
           <div v-if="chartLoading" class="absolute inset-0 flex items-center justify-center text-xs text-slate-400">
             图表加载中…
@@ -35,8 +41,6 @@
     </div>
 
     <div class="rounded-xl border-slate-200/80 bg-white/80 shadow-sm dark:border-slate-700 dark:bg-slate-900/70">
-      <div class="mb-3 flex flex-wrap items-end justify-between gap-2">
-      </div>
       <div v-if="tableRows.length" class="overflow-x-auto">
         <table
           class="min-w-full divide-y divide-slate-200 text-xs text-slate-600 dark:divide-slate-700 dark:text-slate-200">
@@ -75,6 +79,7 @@
 import { ref, reactive, computed, onMounted, watch, nextTick, type Ref } from 'vue';
 import axios from 'axios';
 import { processUrl, processParams } from '@/common/utils/params-processor';
+import DropdownArrow from '@/components/icons/DropdownArrow.vue';
 
 type ChartCategory = 'industry' | 'product' | 'region';
 
@@ -449,10 +454,8 @@ const cellAlignClass = (align: TableColumn['align']) => {
   return 'text-left';
 };
 
-const cycleReport = () => {
-  const currentIndex = reportOptions.indexOf(selectedReport.value);
-  const nextIndex = (currentIndex + 1) % reportOptions.length;
-  selectedReport.value = reportOptions[nextIndex];
+const handleReportChange = (report: string) => {
+  selectedReport.value = report;
 };
 
 function createMockPayload(centerTitle: string, total: number, scale: number): ChartAndTablePayload {
@@ -534,7 +537,7 @@ function createPieChartConfig(centerTitle: string, centerValue: string, values: 
             },
             label: {
               formatter: '{b} {d}%',
-              show: true
+              show: false
             },
             emphasis: {
               scale: true
@@ -692,5 +695,12 @@ watch(
 :global(.dark) .radio-button-group :deep(.el-radio-button.is-active .el-radio-button__inner) {
   background-color: rgba(74, 97, 214, 0.25);
   color: #c7d2fe;
+}
+
+/* 下拉菜单选中项样式 */
+:deep(.el-dropdown-menu__item.is-active) {
+  background-color: rgba(238, 242, 255, 1);
+  color: #4338ca;
+  font-weight: 500;
 }
 </style>
