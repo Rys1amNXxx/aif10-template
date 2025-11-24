@@ -176,11 +176,13 @@ const fetchChartData = async () => {
   console.log('props.params:', props.params);
   console.log('URL 参数 - code:', code, 'market:', market, 'seq:', seq);
 
-  // 如果是第一次渲染且有初始数据，直接使用
-  if (isFirstRender.value && props.data) {
-    console.log('使用初始数据');
+  // 如果有传入的初始数据，优先使用（包括刷新时）
+  if (props.data) {
+    console.log('使用传入的初始数据');
     chartData.value = props.data;
-    isFirstRender.value = false;
+    if (isFirstRender.value) {
+      isFirstRender.value = false;
+    }
     return;
   }
 

@@ -1,5 +1,6 @@
-import MainBussiness from '@/components/llm-gen/MainBussiness/config.json'
+import MainBussiness from '@/components/llm-gen/MainBusiness/config.json'
 import GenModule from '@/components/llm-gen/GenModule/config.json'
+import FinancialMineChart from '@/components/llm-gen/FinancialMineChart/config.json'
 
 export const mockData = {
     "id": "debug",
@@ -36,7 +37,7 @@ export const mockData = {
                     "features": [],
                     "output": [
                         {
-                            "name": "MainBussiness",
+                            "name": "MainBusiness",
                             "type": "llmgen",
                             "parameter": [],
                             "style": {
@@ -52,7 +53,7 @@ export const mockData = {
                                     "position": "top"
                                 }
                             },
-                            "extension": MainBussiness
+                            "extension": FinancialMineChart
                         }
                     ],
                     "index": -1

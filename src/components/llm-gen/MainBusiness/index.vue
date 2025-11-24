@@ -41,40 +41,52 @@
       </div>
     </div>
 
-    <div
-      class="rounded-xl border border-border-03 bg-background-01 shadow-sm black:border-border-03-dark black:bg-background-01-dark p-4">
-      <div v-if="tableRows.length" class="overflow-x-auto">
-        <table
-          class="min-w-full divide-y divide-border-03 text-xs text-text-02-01 black:divide-border-03-dark black:text-text-02-01-dark">
-          <thead class="bg-background-03 black:bg-background-03-dark">
-            <tr>
-              <th v-for="column in tableColumns" :key="column.key" :class="[
-                'px-4 py-2 font-medium text-text-04 black:text-text-04-dark uppercase tracking-wide',
-                column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : 'text-left'
-              ]">
-                {{ column.label }}
-              </th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-border-03 black:divide-border-03-dark">
-            <tr v-for="(row, rowIndex) in tableRows" :key="`${row.businessName}-${rowIndex}`"
-              class="hover:bg-background-03 black:hover:bg-background-03-dark">
-              <td v-for="column in tableColumns" :key="`${column.key}-${rowIndex}`"
-                :class="['px-4 py-2', cellAlignClass(column.align)]">
-                <span v-if="column.valueType === 'amount'">{{ formatAmount(row[column.key]) }}</span>
-                <span v-else-if="column.valueType === 'percent'">{{ formatPercent(row[column.key]) }}</span>
-                <span v-else>{{ row[column.key] ?? '-' }}</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div v-else
-        class="flex h-32 items-center justify-center rounded-lg border border-dashed border-border-03 text-sm text-text-04 black:border-border-03-dark black:text-text-04-dark">
-        暂无明细数据
-      </div>
+    <el-table v-if="tableRows.length" :data="tableRows" :span-method="objectSpanMethod" class="main-business-table"
+      border size="small">
+      <el-table-column prop="category" label="" width="70" align="center" />
+      <el-table-column prop="businessName" label="业务名称" min-width="140" align="center" />
+      <el-table-column prop="revenue" label="营业收入（元）" align="right" min-width="110">
+        <template #default="{ row }">
+          {{ formatAmount(row.revenue) }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="revenueRatio" label="收入比例" align="right" width="85">
+        <template #default="{ row }">
+          {{ formatPercent(row.revenueRatio) }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="cost" label="营业成本（元）" align="right" min-width="110">
+        <template #default="{ row }">
+          {{ formatAmount(row.cost) }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="costRatio" label="成本比例" align="right" width="85">
+        <template #default="{ row }">
+          {{ formatPercent(row.costRatio) }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="profit" label="主营利润（元）" align="right" min-width="110">
+        <template #default="{ row }">
+          {{ formatAmount(row.profit) }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="profitRatio" label="利润比例" align="right" width="85">
+        <template #default="{ row }">
+          {{ formatPercent(row.profitRatio) }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="grossMargin" label="毛利率" align="right" width="80">
+        <template #default="{ row }">
+          {{ formatPercent(row.grossMargin) }}
+        </template>
+      </el-table-column>
+    </el-table>
+    <div v-else
+      class="flex h-32 items-center justify-center rounded-lg border border-dashed border-border-03 text-sm text-text-04 black:border-border-03-dark black:text-text-04-dark">
+      暂无明细数据
     </div>
   </div>
+
 </template>
 
 <script setup lang="ts">
@@ -191,15 +203,45 @@ const mockTabs: TabItem[] = [
   { id: 'profit', label: '利润总额' }
 ];
 
+// 业务名称归类规则
+const businessCategoryMap: Record<string, string> = {
+  '服务贸易及其他': '按行业',
+  '金融业务': '按行业',
+  '整车业务': '按产品',
+  '零部件业务': '按产品',
+  '服务贸易（产品）': '按产品',
+  '金融业务（产品）': '按产品',
+  '中国': '按地区',
+  '其他': '按地区',
+  '其他地区': '按地区'
+};
+
+// 业务归类函数
+const getBusinessCategory = (businessName: string): string => {
+  // 优先使用映射表
+  if (businessCategoryMap[businessName]) {
+    return businessCategoryMap[businessName];
+  }
+
+  // 根据关键词判断
+  if (businessName.includes('（产品）') || businessName.includes('业务')) {
+    return '按产品';
+  }
+  if (businessName.includes('地区') || businessName.includes('国') || /^[A-Z]{2,}$/.test(businessName)) {
+    return '按地区';
+  }
+  return '按行业';
+};
+
 const baseBusinessRows = [
-  { businessName: '服务贸易及其他', revenue: 3554.64, revenueRatio: 97.12, cost: 2555.55, costRatio: 99.56, profit: 736.58, profitRatio: 82.36, grossMargin: 10.17 },
-  { businessName: '金融业务', revenue: 185.23, revenueRatio: 2.48, cost: 26.36, costRatio: 0.41, profit: 158.17, profitRatio: 17.61, grossMargin: 85.45 },
-  { businessName: '整车业务', revenue: 5023.36, revenueRatio: 67.56, cost: 4753.14, costRatio: 72.25, profit: 238.35, profitRatio: 32.52, grossMargin: 5.79 },
-  { businessName: '零部件业务', revenue: 1828.25, revenueRatio: 25.23, cost: 1525.22, costRatio: 22.36, profit: 355.96, profitRatio: 39.64, grossMargin: 19.46 },
-  { businessName: '服务贸易（产品）', revenue: 373.56, revenueRatio: 5.1, cost: 232.43, costRatio: 2.43, profit: 123.35, profitRatio: 9.49, grossMargin: 19.28 },
-  { businessName: '金融业务（产品）', revenue: 185.06, revenueRatio: 2.55, cost: 26.36, costRatio: 0.41, profit: 158.58, profitRatio: 17.62, grossMargin: 85.36 },
-  { businessName: '中国', revenue: 373.56, revenueRatio: 5.1, cost: 288.88, costRatio: 4.4, profit: 91.36, profitRatio: 10.17, grossMargin: 23.07 },
-  { businessName: '其他地区', revenue: 253.32, revenueRatio: 4.76, cost: 195.73, costRatio: 2.77, profit: 43.58, profitRatio: 5.73, grossMargin: 31.54 }
+  { businessName: '服务贸易及其他', revenue: 3554.64, revenueRatio: 97.12, cost: 2555.55, costRatio: 99.56, profit: 736.58, profitRatio: 82.36, grossMargin: 10.17, category: '按行业' },
+  { businessName: '金融业务', revenue: 185.23, revenueRatio: 2.48, cost: 26.36, costRatio: 0.41, profit: 158.17, profitRatio: 17.61, grossMargin: 85.45, category: '按行业' },
+  { businessName: '整车业务', revenue: 5023.36, revenueRatio: 67.56, cost: 4753.14, costRatio: 72.25, profit: 238.35, profitRatio: 32.52, grossMargin: 5.79, category: '按产品' },
+  { businessName: '零部件业务', revenue: 1828.25, revenueRatio: 25.23, cost: 1525.22, costRatio: 22.36, profit: 355.96, profitRatio: 39.64, grossMargin: 19.46, category: '按产品' },
+  { businessName: '服务贸易及其他', revenue: 373.56, revenueRatio: 5.1, cost: 232.43, costRatio: 2.43, profit: 123.35, profitRatio: 9.49, grossMargin: 19.28, category: '按产品' },
+  { businessName: '金融业务', revenue: 185.06, revenueRatio: 2.55, cost: 26.36, costRatio: 0.41, profit: 158.58, profitRatio: 17.62, grossMargin: 85.36, category: '按产品' },
+  { businessName: '中国', revenue: 373.56, revenueRatio: 5.1, cost: 288.88, costRatio: 4.4, profit: 91.36, profitRatio: 10.17, grossMargin: 23.07, category: '按地区' },
+  { businessName: '其他', revenue: 253.32, revenueRatio: 4.76, cost: 195.73, costRatio: 2.77, profit: 43.58, profitRatio: 5.73, grossMargin: 31.54, category: '按地区' }
 ];
 
 const pieTemplates = {
@@ -460,6 +502,37 @@ const handleReportChange = (report: string) => {
   selectedReport.value = report;
 };
 
+// 单元格合并方法
+const objectSpanMethod = ({ row, column, rowIndex, columnIndex }: any) => {
+  // 只对第一列（分类列）进行合并
+  if (columnIndex === 0) {
+    const currentCategory = row.category;
+
+    // 计算当前分类的起始行索引
+    let startIndex = rowIndex;
+    while (startIndex > 0 && tableRows.value[startIndex - 1]?.category === currentCategory) {
+      startIndex--;
+    }
+
+    // 如果当前行不是该分类的第一行，隐藏该单元格
+    if (startIndex !== rowIndex) {
+      return { rowspan: 0, colspan: 0 };
+    }
+
+    // 计算当前分类的总行数
+    let rowspan = 1;
+    let nextIndex = rowIndex + 1;
+    while (nextIndex < tableRows.value.length && tableRows.value[nextIndex]?.category === currentCategory) {
+      rowspan++;
+      nextIndex++;
+    }
+
+    return { rowspan, colspan: 1 };
+  }
+
+  return { rowspan: 1, colspan: 1 };
+};
+
 function createMockPayload(centerTitle: string, total: number, scale: number): ChartAndTablePayload {
   const pieValues = getMockPieValues(scale);
   return {
@@ -481,7 +554,8 @@ function createTableRows(scale: number): TableRow[] {
     ...row,
     revenue: +(row.revenue * scale).toFixed(2),
     cost: +(row.cost * scale).toFixed(2),
-    profit: +(row.profit * scale).toFixed(2)
+    profit: +(row.profit * scale).toFixed(2),
+    category: row.category || getBusinessCategory(String(row.businessName || ''))
   }));
 }
 
@@ -609,14 +683,14 @@ watch(
   align-items: center;
   gap: 6px;
   border-radius: 4px;
-  border: 1px solid rgba(224,228,234,1);
+  border: 1px solid rgba(224, 228, 234, 1);
   background-color: var(--background-01);
   font-size: 12px;
   line-height: 1.25rem;
   font-weight: 400;
   color: #2A354E;
   transition: all 0.2s ease;
-  width:86px;
+  width: 90px;
   height: 26px;
 }
 
@@ -709,5 +783,82 @@ watch(
   background-color: var(--background-07-dark);
   color: var(--text-05-dark);
   box-shadow: inset 0 0 0 1px var(--border-04-dark);
+}
+
+/* Element Plus 表格样式覆盖 */
+.main-business-table {
+  font-size: 12px;
+}
+
+.main-business-table :deep(.el-table__header) {
+  background-color: var(--background-03);
+}
+
+:global(.dark) .main-business-table :deep(.el-table__header) {
+  background-color: var(--background-03-dark);
+}
+
+.main-business-table :deep(.el-table__header th) {
+  background-color: var(--background-03);
+  color: var(--text-04);
+  font-weight: 500;
+  font-size: 12px;
+  padding: 6px 8px;
+  height: 32px;
+}
+
+:global(.dark) .main-business-table :deep(.el-table__header th) {
+  background-color: var(--background-03-dark);
+  color: var(--text-04-dark);
+}
+
+.main-business-table :deep(.el-table__body tr) {
+  background-color: var(--background-00);
+}
+
+:global(.dark) .main-business-table :deep(.el-table__body tr) {
+  background-color: var(--background-00-dark);
+}
+
+.main-business-table :deep(.el-table__body td) {
+  color: var(--text-02-01);
+  font-size: 12px;
+  padding: 6px 8px;
+  height: 36px;
+  border-color: var(--border-03);
+}
+
+:global(.dark) .main-business-table :deep(.el-table__body td) {
+  color: var(--text-02-01-dark);
+  border-color: var(--border-03-dark);
+}
+
+.main-business-table :deep(.el-table__body tr:hover > td) {
+  background-color: var(--background-03) !important;
+}
+
+:global(.dark) .main-business-table :deep(.el-table__body tr:hover > td) {
+  background-color: var(--background-03-dark) !important;
+}
+
+.main-business-table :deep(.el-table td.el-table__cell),
+.main-business-table :deep(.el-table th.el-table__cell.is-leaf) {
+  border-color: var(--border-03);
+}
+
+:global(.dark) .main-business-table :deep(.el-table td.el-table__cell),
+:global(.dark) .main-business-table :deep(.el-table th.el-table__cell.is-leaf) {
+  border-color: var(--border-03-dark);
+}
+
+/* 第一列（分类列）居中加粗 */
+.main-business-table :deep(.el-table__body td:first-child) {
+  font-weight: 500;
+  color: var(--text-01);
+  text-align: center;
+}
+
+:global(.dark) .main-business-table :deep(.el-table__body td:first-child) {
+  color: var(--text-01-dark);
 }
 </style>

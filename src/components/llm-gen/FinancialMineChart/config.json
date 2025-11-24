@@ -5,7 +5,7 @@
     {
       "method": "post",
       "isFirstScreen": true,
-      "alis": "financialMineChart",
+      "alias": "financialMineChart",
       "url": "https://data.10jqka.com.cn/basicapi/visual/smart/dev/section/v1/index_fetch",
       "params": {
         "indexes": [],
@@ -15,7 +15,7 @@
             "scene": "profitBreakDown"
           }
         },
-        "stocks": ["${seq}"],
+        "stocks": ["44824"],
         "source": "finance_summary_fetcher"
       }
     }
