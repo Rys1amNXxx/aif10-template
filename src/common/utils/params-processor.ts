@@ -68,6 +68,7 @@ export const processParams = (apiParams: Record<string, any>, apiData?: Record<s
     // 如果是数组，保持数组结构
     if (Array.isArray(value)) {
       result[key] = value.map(item => {
+        // 处理数组中的字符串元素
         if (typeof item === 'string' && item.includes('${')) {
           const matches = item.match(/\$\{([^}]+)\}/g);
           if (matches) {
@@ -92,6 +93,10 @@ export const processParams = (apiParams: Record<string, any>, apiData?: Record<s
             });
             return processedValue;
           }
+        }
+        // 处理数组中的对象元素（递归处理）
+        else if (typeof item === 'object' && item !== null) {
+          return processParams(item, apiData, finalBaseParams);
         }
         return item;
       });

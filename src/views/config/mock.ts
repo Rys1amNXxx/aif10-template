@@ -37,7 +37,7 @@ export const mockData = {
                     "features": [],
                     "output": [
                         {
-                            "name": "MainBusiness",
+                            "name": "FinancialMineChart",
                             "type": "llmgen",
                             "parameter": [],
                             "style": {

@@ -1,13 +1,14 @@
 <template>
-  <div class="w-full flex flex-col gap-4">
+  <div class="w-full flex flex-col gap-2">
     <!-- 下拉菜单和按钮组在同一行 -->
     <div class="flex items-center gap-3">
-      <div class="radio-container flex-1" v-loading="tabsLoading">
-        <el-radio-group v-model="activeTabId" class="radio-button-group" :disabled="tabsLoading">
-          <el-radio-button v-for="tab in tabs" :key="tab.id" :label="tab.id">
+      <div class="radio-container flex-1" :class="{ 'opacity-60 pointer-events-none': tabsLoading }">
+        <div class="flex gap-2">
+          <div v-for="tab in tabs" :key="tab.id" class="mb-tab-btn" :class="{ 'is-active': activeTabId === tab.id }"
+            @click="activeTabId = tab.id">
             {{ tab.label }}
-          </el-radio-button>
-        </el-radio-group>
+          </div>
+        </div>
       </div>
       <el-dropdown @command="handleReportChange" trigger="click">
         <button type="button" class="report-select">
@@ -44,8 +45,8 @@
     <el-table v-if="tableRows.length" :data="tableRows" :span-method="objectSpanMethod" class="main-business-table"
       border size="small">
       <el-table-column label="业务名称" align="center">
-        <el-table-column prop="category" width="70" align="center" />
-        <el-table-column prop="businessName" min-width="140" align="center" />
+        <el-table-column prop="category" width="70" align="center" class-name="row-header-cell" />
+        <el-table-column prop="businessName" min-width="140" align="center" class-name="row-header-cell" />
       </el-table-column>
       <el-table-column prop="revenue" label="营业收入（元）" align="right" min-width="110">
         <template #default="{ row }">
@@ -92,12 +93,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch, nextTick, type Ref } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick, type Ref } from 'vue';
 import axios from 'axios';
 import { processUrl, processParams } from '@/common/utils/params-processor';
 import DropdownArrow from '@/components/icons/DropdownArrow.vue';
 
 type ChartCategory = 'industry' | 'product' | 'region';
+
 
 interface ApiConfig {
   method: string;
@@ -185,6 +187,7 @@ const tableUnit = ref('亿');
 const isFirstChartFromProps = ref(true);
 const selectedReport = ref('2023年报');
 const reportOptions = ['2023年报', '2022年报', '2021年报'];
+const isDark = ref(false);
 
 const activeTabLabel = computed(() => tabs.value.find(item => item.id === activeTabId.value)?.label ?? '');
 
@@ -403,15 +406,34 @@ const fetchCharts = async (tabId: string) => {
 const applyChartPayload = (payload: ChartAndTablePayload | undefined, tabKey: string) => {
   const fallback = mockChartDataset[tabKey] ?? mockChartDataset.revenue;
   const safePayload = payload ?? fallback;
+
+  // 1. 获取最新的表格数据（用于聚合饼图数据）
+  const incomingRows = safePayload.table?.rows?.length
+    ? safePayload.table.rows
+    : fallback.table?.rows ?? [];
+  tableRows.value = [...incomingRows];
+
   const chartSource = safePayload.charts ?? safePayload.chartGroup ?? {};
 
   CHART_KEYS.forEach(key => {
-    const rawConfig =
-      chartSource[key] ??
-      chartSource[`${key}Chart`] ??
-      chartSource[`${key}_chart`] ??
-      fallback.charts?.[key];
-    chartConfigs[key] = normalizeChartConfig(rawConfig);
+    // 2. 根据表格数据动态生成饼图数据（如果表格有数据，则忽略原本的 charts 数据，保证一致性）
+    const aggregatedData = aggregatePieDataFromTable(tableRows.value, key, tabKey);
+
+    if (aggregatedData && aggregatedData.length > 0) {
+      // 使用聚合后的数据构建图表配置
+      chartConfigs[key] = createPieChartConfig(
+        chartPanels.find(p => p.key === key)?.title ?? '',
+        aggregatedData
+      );
+    } else {
+      // 降级逻辑：使用原始配置
+      const rawConfig =
+        chartSource[key] ??
+        chartSource[`${key}Chart`] ??
+        chartSource[`${key}_chart`] ??
+        fallback.charts?.[key];
+      chartConfigs[key] = normalizeChartConfig(rawConfig);
+    }
   });
 
   const incomingColumns = safePayload.table?.columns?.length
@@ -419,14 +441,39 @@ const applyChartPayload = (payload: ChartAndTablePayload | undefined, tabKey: st
     : fallback.table?.columns ?? baseTableColumns;
   tableColumns.value = [...incomingColumns];
 
-  const incomingRows = safePayload.table?.rows?.length
-    ? safePayload.table.rows
-    : fallback.table?.rows ?? [];
-  tableRows.value = [...incomingRows];
-
   tableUnit.value = safePayload.table?.unit ?? fallback.table?.unit ?? tableUnit.value ?? '亿';
 
   renderCharts();
+};
+
+// 新增：从表格数据聚合饼图数据的函数
+const aggregatePieDataFromTable = (rows: TableRow[], categoryKey: ChartCategory, valueKey: string): PieValue[] => {
+  // 映射表：将表格的 category 字段映射到对应的图表 key
+  // industry: '按行业', product: '按产品', region: '按地区'
+  const categoryLabelMap: Record<ChartCategory, string> = {
+    industry: '按行业',
+    product: '按产品',
+    region: '按地区'
+  };
+
+  const targetCategory = categoryLabelMap[categoryKey];
+  if (!targetCategory) return [];
+
+  // 1. 筛选属于当前分类（如“按行业”）的行
+  const filteredRows = rows.filter(row => row.category === targetCategory);
+  if (!filteredRows.length) return [];
+
+  // 2. 提取数据：name = businessName, value = 对应的数值列（如 revenue/cost/profit）
+  // valueKey 是当前选中的 tabId，如 'revenue', 'cost', 'profit'
+  // 注意：表格行里的 key 需要和 tabId 对应。如果不完全对应需要做映射
+  const metricKey = valueKey === 'revenue' ? 'revenue' :
+    valueKey === 'cost' ? 'cost' :
+      valueKey === 'profit' ? 'profit' : 'revenue';
+
+  return filteredRows.map(row => ({
+    name: String(row.businessName || ''),
+    value: Number(row[metricKey] || 0)
+  })).filter(item => item.value > 0); // 过滤掉 0 值
 };
 
 const normalizeChartConfig = (config: any): ChartRenderPayload | null => {
@@ -490,8 +537,7 @@ const formatPercent = (value: string | number | null | undefined) => {
   if (typeof value === 'string') {
     return value.includes('%') ? value : `${value}%`;
   }
-  const ratio = value > 1 ? value : value * 100;
-  return `${ratio.toFixed(2)}%`;
+  return `${value.toFixed(2)}%`;
 };
 
 const cellAlignClass = (align: TableColumn['align']) => {
@@ -539,9 +585,9 @@ function createMockPayload(centerTitle: string, total: number, scale: number): C
   const pieValues = getMockPieValues(scale);
   return {
     charts: {
-      industry: createPieChartConfig('按行业分', `${total.toFixed(2)}亿`, pieValues.industry),
-      product: createPieChartConfig('按产品分', `${total.toFixed(2)}亿`, pieValues.product),
-      region: createPieChartConfig('按地区分', `${total.toFixed(2)}亿`, pieValues.region)
+      industry: createPieChartConfig('按行业分', pieValues.industry, `${total.toFixed(2)}亿`),
+      product: createPieChartConfig('按产品分', pieValues.product, `${total.toFixed(2)}亿`),
+      region: createPieChartConfig('按地区分', pieValues.region, `${total.toFixed(2)}亿`)
     },
     table: {
       columns: baseTableColumns,
@@ -576,7 +622,15 @@ function scalePieValues(values: PieValue[], scale: number) {
   }));
 }
 
-function createPieChartConfig(centerTitle: string, centerValue: string, values: PieValue[]): ChartRenderPayload {
+// 修改：createPieChartConfig 改为支持动态数据
+function createPieChartConfig(centerTitle: string, values: PieValue[], centerValue?: string): ChartRenderPayload {
+  // 计算总值用于显示在中间（如果未提供 centerValue）
+  const total = values.reduce((sum, item) => sum + item.value, 0).toFixed(2);
+  const displayValue = centerValue ?? `${total}${tableUnit.value}`;
+
+  const titleColor = isDark.value ? '#C4CAD5' : 'rgba(0,0,0,0.6)';
+  const subtitleColor = isDark.value ? '#A9B2BE' : '#6B7280';
+
   return {
     data: [
       {
@@ -587,22 +641,25 @@ function createPieChartConfig(centerTitle: string, centerValue: string, values: 
       main: {
         title: [
           {
-            text: `{mainTitle|${centerTitle}}`,
+            text: `{mainTitle|${centerTitle}}`, // 显示总值
             left: 'center',
             top: 'center',
             textStyle: {
               fontSize: 12,
-              color: '#6B7280',
+              color: subtitleColor,
               lineHeight: 18,
               rich: {
-                mainTitle: { fontSize: 12, color: 'rgba(0,0,0,0.6)', lineHeight: 16, fontWeight: 600 },
+                mainTitle: { fontSize: 12, color: titleColor, lineHeight: 16, fontWeight: 600 },
               }
             }
           }
         ],
         legend: {
           bottom: 0,
-          icon: 'circle'
+          icon: 'circle',
+          textStyle: {
+            color: isDark.value ? '#C4CAD5' : '#545E71'
+          }
         },
         layers: [
           {
@@ -649,8 +706,43 @@ const bootstrap = async () => {
   await fetchTabs();
 };
 
+let observer: number | null = null;
+
 onMounted(() => {
   bootstrap();
+  // 初始化暗黑模式状态
+  isDark.value = localStorage.getItem('vueuse-color-scheme') === 'dark';
+
+  // 监听 localStorage 变化 (用于跨标签页或 storage 事件)
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'vueuse-color-scheme') {
+      isDark.value = e.newValue === 'dark';
+    }
+  });
+
+  // 轮询检查 localStorage (兼容同一页面内非 storage 事件触发的变更)
+  observer = window.setInterval(() => {
+    const currentTheme = localStorage.getItem('vueuse-color-scheme');
+    if ((currentTheme === 'dark') !== isDark.value) {
+      isDark.value = currentTheme === 'dark';
+    }
+  }, 100);
+});
+
+onUnmounted(() => {
+  if (observer) {
+    clearInterval(observer);
+    observer = null;
+  }
+});
+
+watch(isDark, () => {
+  // 暗黑模式切换时重新生成图表配置并渲染
+  if (activeTabId.value) {
+    // 重新执行 applyChartPayload 逻辑来刷新图表配置
+    const payload = pickExternalChartPayload(activeTabId.value) ?? mockChartDataset[activeTabId.value];
+    applyChartPayload(payload, activeTabId.value);
+  }
 });
 
 watch(activeTabId, (newVal, oldVal) => {
@@ -678,6 +770,30 @@ watch(
 </script>
 
 <style scoped>
+/* CSS 变量定义 - 亮色主题 */
+.w-full {
+  --mb-tab-bg: #FFFFFF;
+  --mb-tab-border: rgba(224, 228, 234, 1);
+  --mb-tab-color: #2A354E;
+  --mb-tab-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --mb-tab-hover-bg: #F2F5FA;
+  --mb-tab-active-bg: #E7EAFA;
+  --mb-tab-active-color: #636FFF;
+  --mb-tab-active-border: #636FFF;
+}
+
+/* CSS 变量定义 - 暗色主题 */
+:global(.dark) .w-full {
+  --mb-tab-bg: #1D273F;
+  --mb-tab-border: #545E71;
+  --mb-tab-color: #ffffff;
+  --mb-tab-shadow: none;
+  --mb-tab-hover-bg: #374152;
+  --mb-tab-active-bg: #2C375D;
+  --mb-tab-active-color: #F2F5FA;
+  --mb-tab-active-border: #7E8DFF;
+}
+
 /* 下拉菜单按钮 */
 .report-select {
   display: flex;
@@ -731,60 +847,42 @@ watch(
 }
 
 :global(.dark) .radio-container {
-  background-color: var(--background-03-dark);
+  background-color: #1D273F;
 }
 
-.radio-button-group {
+/* 主营业务标签按钮样式 - 使用CSS变量 */
+.mb-tab-btn {
   display: flex;
-  min-width: max-content;
-  gap: 0.5rem;
-}
-
-/* 按钮样式 */
-.radio-button-group :deep(.el-radio-button__inner) {
-  border-radius: 4px;
-  border: 1px solid rgba(224, 228, 234, 1);
-  background-color: var(--background-00);
-  font-size: 12px;
-  font-weight: 400;
-  color: #2A354E;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  transition: background-color 0.2s ease;
-  height: 26px;
-  width: 68px;
-  display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0;
+  height: 26px;
+  min-width: 68px;
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 400;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
   line-height: 1;
+  white-space: nowrap;
+
+  /* 使用 CSS 变量，自动响应主题切换 */
+  background-color: var(--mb-tab-bg);
+  border: 1px solid var(--mb-tab-border);
+  color: var(--mb-tab-color);
+  box-shadow: var(--mb-tab-shadow);
 }
 
-.radio-button-group :deep(.el-radio-button__inner:hover) {
-  background-color: var(--background-03);
+.mb-tab-btn:hover {
+  background-color: var(--mb-tab-hover-bg);
 }
 
-.radio-button-group :deep(.el-radio-button.is-active .el-radio-button__inner) {
-  background-color: #E7EAFA;
-  color: #636FFF;
-  box-shadow: inset 0 0 0 1px var(--border-04);
-  border-color: #636FFF;
-}
-
-/* 暗色主题 */
-:global(.dark) .radio-button-group :deep(.el-radio-button__inner) {
-  background-color: var(--background-00-dark);
-  color: var(--text-03-dark);
-  box-shadow: 0 1px 2px 0 rgba(255, 255, 255, 0.05);
-}
-
-:global(.dark) .radio-button-group :deep(.el-radio-button__inner:hover) {
-  background-color: var(--background-03-dark);
-}
-
-:global(.dark) .radio-button-group :deep(.el-radio-button.is-active .el-radio-button__inner) {
-  background-color: var(--background-07-dark);
-  color: var(--text-05-dark);
-  box-shadow: inset 0 0 0 1px var(--border-04-dark);
+.mb-tab-btn.is-active {
+  background-color: var(--mb-tab-active-bg);
+  color: var(--mb-tab-active-color);
+  border: 1px solid var(--mb-tab-active-border);
+  box-shadow: inset 0 0 0 1px var(--mb-tab-active-border);
+  font-weight: 500;
 }
 
 /* Element Plus 表格样式覆盖 */
@@ -793,7 +891,7 @@ watch(
 }
 
 .main-business-table :deep(.el-table__header) {
-  background-color: var(--background-03);
+  background-color: #F2F5FA;
 }
 
 :global(.dark) .main-business-table :deep(.el-table__header) {
@@ -801,18 +899,22 @@ watch(
 }
 
 .main-business-table :deep(.el-table__header th) {
-  background-color: var(--background-03);
-  color: var(--text-04);
+  background-color: #F2F5FA;
+  color: #545E71;
   font-weight: 500;
   font-size: 12px;
   padding: 6px 8px;
   height: 32px;
-  border: 1px solid rgba(235,238,246,1);
+  border: 1px solid rgba(235, 238, 246, 1);
 }
 
 :global(.dark) .main-business-table :deep(.el-table__header th) {
   background-color: var(--background-03-dark);
-  color: var(--text-04-dark);
+  /* #2A354E */
+  color: #C4CAD5;
+  /* 接近图片中的表头文字颜色，使用 --text-03-dark */
+  border-color: var(--border-03-dark);
+  /* #545E71 */
 }
 
 .main-business-table :deep(.el-table__body tr) {
@@ -820,20 +922,33 @@ watch(
 }
 
 :global(.dark) .main-business-table :deep(.el-table__body tr) {
-  background-color: var(--background-00-dark);
+  background-color: transparent;
+  /* 让表格背景透明，透出底层容器背景 */
+}
+
+/* 强制表格整体背景透明，适配暗黑模式卡片 */
+:global(.dark) .main-business-table {
+  --el-table-bg-color: transparent;
+  --el-table-tr-bg-color: transparent;
+  --el-table-header-bg-color: var(--background-03-dark);
+  background-color: transparent;
 }
 
 .main-business-table :deep(.el-table__body td) {
-  color: var(--text-02-01);
+  color: #545E71;
   font-size: 12px;
   padding: 6px 8px;
   height: 36px;
-  border: 1px solid rgba(235,238,246,1);
+  border: 1px solid rgba(235, 238, 246, 1);
 }
 
 :global(.dark) .main-business-table :deep(.el-table__body td) {
   color: var(--text-02-01-dark);
+  /* #F2F5FA */
   border-color: var(--border-03-dark);
+  /* #545E71 */
+  background-color: var(--background-00-dark);
+  /* #181E25 单元格背景 */
 }
 
 .main-business-table :deep(.el-table__body tr:hover > td) {
@@ -859,14 +974,28 @@ watch(
   display: none;
 }
 
-/* 第一列（分类列）居中加粗 */
+/* 纵表头背景色 */
+.main-business-table :deep(.row-header-cell) {
+  background-color: #F2F5FA;
+  color: #545E71;
+}
+
+:global(.dark) .main-business-table :deep(.row-header-cell) {
+  background-color: var(--background-03-dark);
+  /* 纵表头背景与横表头一致 */
+  color: #C4CAD5;
+  /* 纵表头文字颜色 */
+}
+
+/* 第一列（分类列）特殊样式：居中加粗 */
 .main-business-table :deep(.el-table__body td:first-child) {
   font-weight: 500;
-  color: var(--text-01);
+  color: #545E71;
   text-align: center;
 }
 
 :global(.dark) .main-business-table :deep(.el-table__body td:first-child) {
-  color: var(--text-01-dark);
+  color: #C4CAD5;
+  /* 分类列文字颜色 */
 }
 </style>

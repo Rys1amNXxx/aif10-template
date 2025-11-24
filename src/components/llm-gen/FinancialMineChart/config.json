@@ -8,14 +8,18 @@
       "alias": "financialMineChart",
       "url": "https://data.10jqka.com.cn/basicapi/visual/smart/dev/section/v1/index_fetch",
       "params": {
-        "indexes": [],
         "format": {},
         "standard_index_request": {
           "extension": {
             "scene": "profitBreakDown"
-          }
+          },
+          "stock_metas": [
+            {
+              "stock_code": "${code}",
+              "market_id": "${market}"
+            }
+          ]
         },
-        "stocks": ["44824"],
         "source": "finance_summary_fetcher"
       }
     }

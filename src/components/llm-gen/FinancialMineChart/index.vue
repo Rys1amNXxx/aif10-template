@@ -48,7 +48,9 @@
 
     <!-- 自定义 Tooltip（完全脱离 G6 插件） -->
     <Transition name="tooltip-fade" mode="out-in">
-      <div v-if="tooltip.visible" :key="tooltip.key" class="g6-custom-tooltip" :style="tooltipStyle">
+      <div v-if="tooltip.visible" :key="tooltip.key" class="g6-custom-tooltip" :style="tooltipStyle"
+        @mouseenter="handleTooltipMouseEnter" @mouseleave="handleTooltipMouseLeave" @wheel="handleTooltipWheel"
+        @mousewheel="handleTooltipWheel" @DOMMouseScroll="handleTooltipWheel">
         <div class="g6-custom-tooltip-inner" v-html="tooltip.html"></div>
       </div>
     </Transition>
@@ -72,7 +74,7 @@ interface Props {
     apis: Array<{
       method: string;
       isFirstScreen: boolean;
-      alis: string;
+      alias: string;
       url: string;
       params: Record<string, any>;
       depends?: string[];
@@ -90,9 +92,9 @@ const props = withDefaults(defineProps<Props>(), {
   data: undefined
 });
 
-// 获取 URL 参数
-const code = window.F10Utils.getUrlParams('code') || '';
-const market = window.F10Utils.getUrlParams('market') || '';
+// 获取 URL 参数（提供默认值以支持开发环境）
+const code = window.F10Utils.getUrlParams('code') || '300033';
+const market = window.F10Utils.getUrlParams('market') || '33';
 const seq = window.F10Utils.getUrlParams('seq') || '';
 
 // 生成组件唯一ID
@@ -125,6 +127,12 @@ const tooltip = ref<{
   nodeId: null,
   key: 0,
 });
+
+// 标记鼠标是否在 tooltip 上
+const isMouseOverTooltip = ref(false);
+// 标记是否正在惯性滚动（防止滚动惯性穿透）
+const isInertiaScrolling = ref(false);
+let inertiaTimeout: number | null = null;
 
 // tooltip 在容器内的样式（带边界裁剪）
 const TOOLTIP_VIEW_PADDING = 12;
@@ -166,7 +174,7 @@ const tooltipStyle = computed(() => {
 });
 
 //测试开关：设置为 true 使用本地 mock 数据，false 使用接口数据
-const USE_LOCAL_DATA = true;
+const USE_LOCAL_DATA = false;
 // 是否首次渲染标记
 const isFirstRender = ref(true);
 
@@ -178,8 +186,20 @@ const fetchChartData = async () => {
 
   // 如果有传入的初始数据，优先使用（包括刷新时）
   if (props.data) {
-    console.log('使用传入的初始数据');
-    chartData.value = props.data;
+    console.log('使用传入的初始数据，完整数据:', props.data);
+
+    // props.data 的结构是 { financialMineChart: { rows: [...] } }
+    // 需要提取 financialMineChart.rows[0].data
+    const apiData = props.data.financialMineChart;
+    if (apiData?.rows?.[0]?.data) {
+      chartData.value = apiData.rows[0].data;
+      console.log('成功提取图谱数据:', chartData.value);
+    } else {
+      // 降级：尝试直接使用 data（如果是旧格式）
+      chartData.value = props.data;
+      console.warn('数据格式不匹配，使用原始数据');
+    }
+
     if (isFirstRender.value) {
       isFirstRender.value = false;
     }
@@ -198,7 +218,7 @@ const fetchChartData = async () => {
   error.value = null;
 
   try {
-    const api = props.params.apis?.find(api => api.alis === 'financialMineChart');
+    const api = props.params.apis?.find(api => api.alias === 'financialMineChart');
     if (!api) {
       console.error('未找到 financialMineChart API 配置');
       error.value = '配置错误：未找到 API 配置';
@@ -209,25 +229,28 @@ const fetchChartData = async () => {
 
     const url = processUrl(api.url);
     const method = api.method.toLowerCase();
-    const params = processParams(api.params);
 
-    console.log('请求参数:', { method, url, params });
+    // 使用 processParams 处理配置中的参数，自动替换 ${code} 和 ${market}
+    const requestBody = processParams(api.params || {});
+
+    console.log('请求参数:', { method, url, requestBody });
 
     const response = await axios({
       method,
       url,
-      params: method === 'get' ? params : undefined,
-      data: method !== 'get' ? params : undefined
+      params: method === 'get' ? requestBody : undefined,
+      data: method !== 'get' ? requestBody : undefined
     });
 
     console.log('API 响应:', response.data);
 
     if (response.data.status_code === 0 || response.data.status_code === 200) {
-      const resultData =
-        response.data?.data?.result?.view_wrapper?.views?.[0]?.visual?.data?.[0]?.data;
+      // 根据新的数据结构提取图谱数据：data.rows[0].data
+      const resultData = response.data?.data?.rows?.[0]?.data;
 
       if (resultData) {
         chartData.value = resultData;
+        console.log('成功提取图谱数据:', resultData);
       } else {
         error.value = '数据格式错误，未找到图谱数据';
         console.error('数据结构异常:', response.data);
@@ -321,7 +344,7 @@ const TAG_VERTICAL_PADDING = 9;
 const DETAIL_ICON_SIZE = 14;
 const DETAIL_ICON_GAP = 4;
 
-const NODE_WIDTH = 290;
+const NODE_WIDTH = 300;
 const NODE_MIN_HEIGHT = 72;
 const LABEL_FONT_SIZE = 14;
 const LABEL_LINE_HEIGHT = 20;
@@ -626,7 +649,55 @@ const commonShowDetailTooltip = (event: MouseEvent, nodeId: string) => {
 };
 
 const hideTooltip = () => {
+  // 如果鼠标在 tooltip 上，不关闭
+  if (isMouseOverTooltip.value) {
+    return;
+  }
   tooltip.value.visible = false;
+};
+
+// Tooltip 鼠标进入
+const handleTooltipMouseEnter = () => {
+  isMouseOverTooltip.value = true;
+};
+
+// Tooltip 鼠标离开
+const handleTooltipMouseLeave = () => {
+  isMouseOverTooltip.value = false;
+  // 不主动清除惯性状态，让定时器自然过期
+};
+
+// Tooltip 内滚轮事件处理
+const handleTooltipWheel = (e: WheelEvent) => {
+  // 阻止当前事件冒泡
+  e.stopPropagation();
+
+  // 开启惯性保护
+  isInertiaScrolling.value = true;
+
+  // 重置定时器
+  if (inertiaTimeout !== null) {
+    clearTimeout(inertiaTimeout);
+  }
+
+  // 设定较长的缓冲时间（400ms），在这个时间内，Canvas 禁止缩放
+  inertiaTimeout = window.setTimeout(() => {
+    isInertiaScrolling.value = false;
+    inertiaTimeout = null;
+  }, 400);
+};
+
+// 容器级捕获阶段拦截器：防止滚动惯性穿透到 Canvas
+const handleContainerCaptureWheel = (e: WheelEvent) => {
+  // 如果处于 Tooltip 滚动带来的惯性期
+  if (isInertiaScrolling.value) {
+    // 1. 阻止事件向下传递给 G6 Canvas
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    // 2. 阻止浏览器默认滚动行为
+    e.preventDefault();
+    console.log('🛡️ 拦截惯性滚动');
+  }
 };
 
 // 使用唯一ID注册全局函数，避免命名冲突
@@ -835,10 +906,13 @@ const initGraph = () => {
   });
 
   graph.on('canvas:click', () => {
-    hideTooltip();
+    // 强制关闭 tooltip
+    isMouseOverTooltip.value = false;
+    tooltip.value.visible = false;
   });
 
   graph.on(GraphEvent.AFTER_TRANSFORM, () => {
+    // 视图变换时关闭 tooltip（不受惯性状态影响）
     hideTooltip();
   });
 
@@ -847,7 +921,10 @@ const initGraph = () => {
 };
 
 const handleRefresh = async () => {
-  hideTooltip();
+  // 强制关闭 tooltip 并重置状态
+  isMouseOverTooltip.value = false;
+  tooltip.value.visible = false;
+
   await fetchChartData();
   if (graphRef.value) {
     graphRef.value.destroy();
@@ -870,9 +947,19 @@ const handleZoom = (ratio: number) => {
 onMounted(async () => {
   await fetchChartData();
   initGraph();
+
+  // 添加捕获阶段的监听器，防止滚动惯性穿透
+  if (wrapperRef.value) {
+    wrapperRef.value.addEventListener('wheel', handleContainerCaptureWheel, { capture: true });
+  }
 });
 
 onBeforeUnmount(() => {
+  // 移除捕获监听器
+  if (wrapperRef.value) {
+    wrapperRef.value.removeEventListener('wheel', handleContainerCaptureWheel, { capture: true });
+  }
+
   if (graphRef.value) {
     graphRef.value.destroy();
     graphRef.value = null;
@@ -883,6 +970,12 @@ onBeforeUnmount(() => {
   delete win[`handleDetailIconClick_${componentId}`];
   delete win[`handleTitleClick_${componentId}`];
   delete win[`handleCollapseClick_${componentId}`];
+
+  // 清理惯性滚动定时器
+  if (inertiaTimeout !== null) {
+    clearTimeout(inertiaTimeout);
+    inertiaTimeout = null;
+  }
 
   // 清空容器，确保旧的画布元素被完全移除
   const container = document.getElementById('container');
