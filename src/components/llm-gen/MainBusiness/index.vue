@@ -43,8 +43,10 @@
 
     <el-table v-if="tableRows.length" :data="tableRows" :span-method="objectSpanMethod" class="main-business-table"
       border size="small">
-      <el-table-column prop="category" label="" width="70" align="center" />
-      <el-table-column prop="businessName" label="业务名称" min-width="140" align="center" />
+      <el-table-column label="业务名称" align="center">
+        <el-table-column prop="category" width="70" align="center" />
+        <el-table-column prop="businessName" min-width="140" align="center" />
+      </el-table-column>
       <el-table-column prop="revenue" label="营业收入（元）" align="right" min-width="110">
         <template #default="{ row }">
           {{ formatAmount(row.revenue) }}
@@ -805,6 +807,7 @@ watch(
   font-size: 12px;
   padding: 6px 8px;
   height: 32px;
+  border: 1px solid rgba(235,238,246,1);
 }
 
 :global(.dark) .main-business-table :deep(.el-table__header th) {
@@ -825,7 +828,7 @@ watch(
   font-size: 12px;
   padding: 6px 8px;
   height: 36px;
-  border-color: var(--border-03);
+  border: 1px solid rgba(235,238,246,1);
 }
 
 :global(.dark) .main-business-table :deep(.el-table__body td) {
@@ -849,6 +852,11 @@ watch(
 :global(.dark) .main-business-table :deep(.el-table td.el-table__cell),
 :global(.dark) .main-business-table :deep(.el-table th.el-table__cell.is-leaf) {
   border-color: var(--border-03-dark);
+}
+
+/* 隐藏多级表头产生的第二行空表头 */
+.main-business-table :deep(.el-table__header tr:nth-child(2)) {
+  display: none;
 }
 
 /* 第一列（分类列）居中加粗 */
