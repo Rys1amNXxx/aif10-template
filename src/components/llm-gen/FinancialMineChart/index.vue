@@ -180,24 +180,17 @@ const isFirstRender = ref(true);
 
 // 获取接口数据
 const fetchChartData = async () => {
-  console.log('fetchChartData 开始执行');
-  console.log('props.params:', props.params);
-  console.log('URL 参数 - code:', code, 'market:', market, 'seq:', seq);
-
   // 如果有传入的初始数据，优先使用（包括刷新时）
   if (props.data) {
-    console.log('使用传入的初始数据，完整数据:', props.data);
-
     // props.data 的结构是 { financialMineChart: { rows: [...] } }
     // 需要提取 financialMineChart.rows[0].data
     const apiData = props.data.financialMineChart;
     if (apiData?.rows?.[0]?.data) {
       chartData.value = apiData.rows[0].data;
-      console.log('成功提取图谱数据:', chartData.value);
     } else {
       // 降级：尝试直接使用 data（如果是旧格式）
       chartData.value = props.data;
-      console.warn('数据格式不匹配，使用原始数据');
+      console.warn('[FinancialMineChart] 数据格式不匹配，使用原始数据');
     }
 
     if (isFirstRender.value) {
@@ -208,7 +201,6 @@ const fetchChartData = async () => {
 
   // 如果使用本地数据，直接使用 config.json 的 mockData
   if (USE_LOCAL_DATA) {
-    console.log('使用本地 mock 数据');
     loading.value = false;
     chartData.value = (localConfigData as any).mockData || localConfigData;
     return;
@@ -220,20 +212,16 @@ const fetchChartData = async () => {
   try {
     const api = props.params.apis?.find(api => api.alias === 'financialMineChart');
     if (!api) {
-      console.error('未找到 financialMineChart API 配置');
+      console.error('[FinancialMineChart] 未找到 API 配置');
       error.value = '配置错误：未找到 API 配置';
       return;
     }
-
-    console.log('找到 API 配置:', api);
 
     const url = processUrl(api.url);
     const method = api.method.toLowerCase();
 
     // 使用 processParams 处理配置中的参数，自动替换 ${code} 和 ${market}
     const requestBody = processParams(api.params || {});
-
-    console.log('请求参数:', { method, url, requestBody });
 
     const response = await axios({
       method,
@@ -242,26 +230,23 @@ const fetchChartData = async () => {
       data: method !== 'get' ? requestBody : undefined
     });
 
-    console.log('API 响应:', response.data);
-
     if (response.data.status_code === 0 || response.data.status_code === 200) {
       // 根据新的数据结构提取图谱数据：data.rows[0].data
       const resultData = response.data?.data?.rows?.[0]?.data;
 
       if (resultData) {
         chartData.value = resultData;
-        console.log('成功提取图谱数据:', resultData);
       } else {
         error.value = '数据格式错误，未找到图谱数据';
-        console.error('数据结构异常:', response.data);
+        console.error('[FinancialMineChart] 数据结构异常:', response.data);
       }
     } else {
       error.value = response.data.status_msg || '数据加载失败';
-      console.error('请求失败:', response.data);
+      console.error('[FinancialMineChart] 请求失败:', response.data);
     }
   } catch (err: any) {
     error.value = err.message || '网络请求失败，请稍后重试';
-    console.error('请求异常:', err);
+    console.error('[FinancialMineChart] 请求异常:', err);
   } finally {
     loading.value = false;
   }
@@ -696,7 +681,6 @@ const handleContainerCaptureWheel = (e: WheelEvent) => {
     e.stopImmediatePropagation();
     // 2. 阻止浏览器默认滚动行为
     e.preventDefault();
-    console.log('🛡️ 拦截惯性滚动');
   }
 };
 
@@ -734,7 +718,7 @@ const handleContainerCaptureWheel = (e: WheelEvent) => {
       }
     }, 50);
   } catch (e) {
-    console.error('Error toggling collapse:', e);
+    console.error('[FinancialMineChart] 展开/折叠节点失败:', e);
   }
 };
 
@@ -743,7 +727,7 @@ const graphRef = ref<Graph | null>(null);
 const initGraph = () => {
   // 不在这里请求数据，只使用已有 chartData
   if (!chartData.value) {
-    console.error('无法初始化图表：数据获取失败');
+    console.error('[FinancialMineChart] 无法初始化图表：数据为空');
     return;
   }
 
@@ -886,7 +870,7 @@ const initGraph = () => {
           await graph.draw();
         }
       } catch (e) {
-        console.error('Error updating node after expand/collapse:', e);
+        console.error('[FinancialMineChart] 更新节点失败:', e);
       }
     }, 50);
   };
@@ -986,17 +970,11 @@ onBeforeUnmount(() => {
 
 // 监听外部数据变化
 watch(() => props.data, (newVal) => {
-  console.log('props.data 变化:', newVal);
   if (newVal) {
     chartData.value = newVal;
     initGraph();
   }
 }, { deep: true });
-
-// 监听 params 变化
-watch(() => props.params, (newVal) => {
-  console.log('props.params 变化:', newVal);
-}, { deep: true, immediate: false });
 
 // 监听主题变化
 watch(isDark, () => {

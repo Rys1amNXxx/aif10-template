@@ -49,7 +49,7 @@ const getData = async (apis: Array<{
     if (depends && depends.length > 0) {
       const missingDeps = depends.filter((dep: string) => !apiData[dep]);
       if (missingDeps.length > 0) {
-        console.warn(`API ${alias} 依赖 ${missingDeps.join(', ')} 数据，但数据尚未加载`);
+        console.warn(`[LLM Render] API ${alias} 依赖缺失:`, missingDeps.join(', '));
         continue;
       }
     }
@@ -65,7 +65,6 @@ const getData = async (apis: Array<{
 
       // 发起请求
       let response;
-      console.log(processedUrl, processedParams)
       if (method.toLowerCase() === 'get') {
         response = await get({
           url: processedUrl,
@@ -83,7 +82,7 @@ const getData = async (apis: Array<{
         apiData[alias] = response.data;
       }
     } catch (error) {
-      console.error(`请求 ${alias} 接口失败:`, error);
+      console.error(`[LLM Render] 请求 ${alias} 接口失败:`, error);
     }
   }
 
@@ -94,8 +93,6 @@ export function useLLMCompRender() {
   const comVm: Ref<any> = ref(null)
 
   const render = async (dom: any, params: ExtendedRenderParams) => {
-    console.log('params', params);
-
     const compName = params.kamisToken;
     Object.assign(params, { dom: null })
 
