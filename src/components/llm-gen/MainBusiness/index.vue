@@ -1,14 +1,14 @@
 <template>
   <div class="w-full flex items-center justify-between">
-    <!-- 按钮组在左侧 -->
+    <!-- 按钮组 -->
     <div class="radio-container" :class="{ 'opacity-60 pointer-events-none': tabsLoading }">
       <div class="flex gap-2">
         <div v-for="tab in tabs" :key="tab.id" class="flex items-center justify-center h-[26px] min-w-[68px] px-2 
         text-xs rounded cursor-pointer transition-all leading-none whitespace-nowrap border shadow-sm
-             bg-white border-[#E0E4EA] text-[#2A354E] hover:bg-[#F2F5FA]
-             black:bg-[#1D273F] black:border-[#545E71] black:text-[#F2F5FA] black:shadow-none" :class="[
+             bg-white border-border-03 text-text-02-01 hover:bg-background-03 hover:black:bg-background-03-dark
+             black:bg-[#1D273F] black:border-border-03-dark black:text-text-11-dark black:shadow-none" :class="[
               activeTabId === tab.id
-                ? 'bg-[#EFF0FF] !text-[#636FFF] !border-[#636FFF] font-normal black:!bg-[#2C375D] black:!text-[#7E8DFF] black:!border-[#7E8DFF]'
+                ? 'bg-background-07 !text-text-05 !border-border-04 font-normal black:!bg-[#2C375D] black:!text-text-05-dark black:!border-border-04-dark'
                 : ''
             ]" @click="activeTabId = tab.id">
           {{ tab.label }}
@@ -19,10 +19,10 @@
     <el-dropdown @command="handleReportChange" trigger="click">
       <button type="button"
         class="flex items-center justify-center gap-1.5 w-[90px] h-[26px] rounded border text-xs font-normal transition-all duration-200
-                 bg-white/80 border-[#E0E4EA] text-[#2A354E] hover:border-text-03-dark
+                 bg-white/80 border-border-03 text-text-02-01 hover:border-text-03-dark
                  black:bg-background-18-dark black:border-border-03-dark hover:black:border-text-04-dark black:text-text-02-01-dark black:shadow-[0_1px_2px_0_rgba(255,255,255,0.05)]">
         <span>{{ selectedReport }}</span>
-        <DropdownArrow class="text-[#2A354E] black:text-text-02-01-dark rotate-180" />
+        <DropdownArrow class="text-text-02-01 black:text-text-02-01-dark rotate-180" />
       </button>
       <template #dropdown>
         <el-dropdown-menu
@@ -57,48 +57,90 @@
     </div>
   </div>
 
-  <el-table v-if="tableRows.length" :data="tableRows" :span-method="objectSpanMethod" class="main-business-table" border
-    size="small">
-    <el-table-column label="业务名称" align="center">
-      <el-table-column prop="category" width="70" align="center" class-name="row-header-cell" />
-      <el-table-column prop="businessName" min-width="140" align="center" class-name="row-header-cell" />
-    </el-table-column>
-    <el-table-column prop="revenue" label="营业收入（元）" align="right" min-width="110">
-      <template #default="{ row }">
-        {{ formatAmount(row.revenue) }}
-      </template>
-    </el-table-column>
-    <el-table-column prop="revenueRatio" label="收入比例" align="right" width="85">
-      <template #default="{ row }">
-        {{ formatPercent(row.revenueRatio) }}
-      </template>
-    </el-table-column>
-    <el-table-column prop="cost" label="营业成本（元）" align="right" min-width="110">
-      <template #default="{ row }">
-        {{ formatAmount(row.cost) }}
-      </template>
-    </el-table-column>
-    <el-table-column prop="costRatio" label="成本比例" align="right" width="85">
-      <template #default="{ row }">
-        {{ formatPercent(row.costRatio) }}
-      </template>
-    </el-table-column>
-    <el-table-column prop="profit" label="主营利润（元）" align="right" min-width="110">
-      <template #default="{ row }">
-        {{ formatAmount(row.profit) }}
-      </template>
-    </el-table-column>
-    <el-table-column prop="profitRatio" label="利润比例" align="right" width="85">
-      <template #default="{ row }">
-        {{ formatPercent(row.profitRatio) }}
-      </template>
-    </el-table-column>
-    <el-table-column prop="grossMargin" label="毛利率" align="right" width="80">
-      <template #default="{ row }">
-        {{ formatPercent(row.grossMargin) }}
-      </template>
-    </el-table-column>
-  </el-table>
+  <!-- 原生表格 -->
+  <div v-if="tableRows.length" class="overflow-x-auto">
+    <table class="w-full text-xs border-collapse">
+      <!-- 表头 -->
+      <thead>
+        <tr class="bg-[#F2F5FA] text-text-03 black:bg-background-03-dark black:text-text-03-dark">
+          <th colspan="2" class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark font-medium text-center">
+            业务名称
+          </th>
+          <th
+            class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark font-medium text-center min-w-[110px]">
+            营业收入（元）
+          </th>
+          <th class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark font-medium text-center w-[85px]">
+            收入比例
+          </th>
+          <th
+            class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark font-medium text-center min-w-[110px]">
+            营业成本（元）
+          </th>
+          <th class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark font-medium text-center w-[85px]">
+            成本比例
+          </th>
+          <th
+            class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark font-medium text-center min-w-[110px]">
+            主营利润（元）
+          </th>
+          <th class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark font-medium text-center w-[85px]">
+            利润比例
+          </th>
+          <th class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark font-medium text-center w-[80px]">
+            毛利率
+          </th>
+        </tr>
+      </thead>
+      <!-- 表格内容 -->
+      <tbody>
+        <template v-for="(row, rowIndex) in tableRows" :key="rowIndex">
+          <tr class="bg-background-00 black:bg-background-00-dark hover:bg-[#F8FAFC] black:hover:bg-background-03-dark">
+            <!-- 分类列 - 动态 rowspan -->
+            <td v-if="shouldShowCategoryCell(rowIndex)" :rowspan="getCategoryRowspan(rowIndex)" class="w-[70px] px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark text-center font-medium
+                       bg-background-03 text-text-03 black:bg-background-03-dark black:text-text-03-dark align-middle">
+              {{ row.category }}
+            </td>
+            <!-- 业务名称 -->
+            <td class="min-w-[140px] px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark text-center
+                       bg-background-03 text-text-03 black:bg-background-03-dark black:text-text-03-dark">
+              {{ row.businessName }}
+            </td>
+            <!-- 数据列 -->
+            <td
+              class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark black:bg-background-01-dark text-right text-text-02-01 black:text-text-02-02-dark">
+              {{ formatAmount(row.revenue) }}
+            </td>
+            <td
+              class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark text-right black:bg-background-01-dark text-text-02-01 black:text-text-02-02-dark">
+              {{ formatPercent(row.revenueRatio) }}
+            </td>
+            <td
+              class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark text-right black:bg-background-01-dark text-text-02-01 black:text-text-02-02-dark">
+              {{ formatAmount(row.cost) }}
+            </td>
+            <td
+              class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark text-right black:bg-background-01-dark text-text-02-01 black:text-text-02-02-dark">
+              {{ formatPercent(row.costRatio) }}
+            </td>
+            <td
+              class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark text-right black:bg-background-01-dark text-text-02-01 black:text-text-02-02-dark">
+              {{ formatAmount(row.profit) }}
+            </td>
+            <td
+              class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark text-right black:bg-background-01-dark text-text-02-01 black:text-text-02-02-dark">
+              {{ formatPercent(row.profitRatio) }}
+            </td>
+            <td
+              class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark text-right black:bg-background-01-dark text-text-02-01 black:text-text-02-02-dark">
+              {{ formatPercent(row.grossMargin) }}
+            </td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+  </div>
+
   <div v-else
     class="flex h-32 items-center justify-center rounded-lg border border-dashed border-border-03 text-sm text-text-04 black:border-border-03-dark black:text-text-04-dark">
     暂无明细数据
@@ -565,35 +607,22 @@ const handleReportChange = (report: string) => {
   selectedReport.value = report;
 };
 
-// 单元格合并方法
-const objectSpanMethod = ({ row, column, rowIndex, columnIndex }: any) => {
-  // 只对第一列（分类列）进行合并
-  if (columnIndex === 0) {
-    const currentCategory = row.category;
+// 判断是否显示分类单元格（只在该分类的第一行显示）
+const shouldShowCategoryCell = (rowIndex: number): boolean => {
+  if (rowIndex === 0) return true;
+  return tableRows.value[rowIndex].category !== tableRows.value[rowIndex - 1].category;
+};
 
-    // 计算当前分类的起始行索引
-    let startIndex = rowIndex;
-    while (startIndex > 0 && tableRows.value[startIndex - 1]?.category === currentCategory) {
-      startIndex--;
-    }
-
-    // 如果当前行不是该分类的第一行，隐藏该单元格
-    if (startIndex !== rowIndex) {
-      return { rowspan: 0, colspan: 0 };
-    }
-
-    // 计算当前分类的总行数
-    let rowspan = 1;
-    let nextIndex = rowIndex + 1;
-    while (nextIndex < tableRows.value.length && tableRows.value[nextIndex]?.category === currentCategory) {
-      rowspan++;
-      nextIndex++;
-    }
-
-    return { rowspan, colspan: 1 };
+// 计算分类的 rowspan（动态计算该分类有多少行）
+const getCategoryRowspan = (rowIndex: number): number => {
+  const currentCategory = tableRows.value[rowIndex].category;
+  let count = 1;
+  let nextIndex = rowIndex + 1;
+  while (nextIndex < tableRows.value.length && tableRows.value[nextIndex].category === currentCategory) {
+    count++;
+    nextIndex++;
   }
-
-  return { rowspan: 1, colspan: 1 };
+  return count;
 };
 
 function createMockPayload(centerTitle: string, total: number, scale: number): ChartAndTablePayload {
@@ -695,8 +724,8 @@ function createPieChartConfig(centerTitle: string, values: PieValue[], centerVal
           }
         ]
       }
-    }
-  };
+    },
+  }
 }
 
 const mockChartDataset: Record<string, ChartAndTablePayload> = {
@@ -801,120 +830,5 @@ watch(
 
 :global(.dark) .radio-container {
   background-color: #1D273F;
-}
-
-
-/* Element Plus 表格样式覆盖 */
-.main-business-table {
-  font-size: 12px;
-}
-
-.main-business-table :deep(.el-table__header) {
-  background-color: #F2F5FA;
-}
-
-:global(.dark) .main-business-table :deep(.el-table__header) {
-  background-color: var(--background-03-dark);
-}
-
-.main-business-table :deep(.el-table__header th) {
-  background-color: #F2F5FA;
-  color: #545E71;
-  font-weight: 500;
-  font-size: 12px;
-  padding: 6px 8px;
-  height: 32px;
-  border: 1px solid rgba(235, 238, 246, 1);
-}
-
-:global(.dark) .main-business-table :deep(.el-table__header th) {
-  background-color: var(--background-03-dark);
-  /* #2A354E */
-  color: #C4CAD5;
-  /* 接近图片中的表头文字颜色，使用 --text-03-dark */
-  border-color: var(--border-03-dark);
-  /* #545E71 */
-}
-
-.main-business-table :deep(.el-table__body tr) {
-  background-color: var(--background-00);
-}
-
-:global(.dark) .main-business-table :deep(.el-table__body tr) {
-  background-color: transparent;
-  /* 让表格背景透明，透出底层容器背景 */
-}
-
-/* 强制表格整体背景透明，适配暗黑模式卡片 */
-:global(.dark) .main-business-table {
-  --el-table-bg-color: transparent;
-  --el-table-tr-bg-color: transparent;
-  --el-table-header-bg-color: var(--background-03-dark);
-  background-color: transparent;
-}
-
-.main-business-table :deep(.el-table__body td) {
-  color: #545E71;
-  font-size: 12px;
-  padding: 6px 8px;
-  height: 36px;
-  border: 1px solid rgba(235, 238, 246, 1);
-}
-
-:global(.dark) .main-business-table :deep(.el-table__body td) {
-  color: var(--text-02-01-dark);
-  /* #F2F5FA */
-  border-color: var(--border-03-dark);
-  /* #545E71 */
-  background-color: var(--background-00-dark);
-  /* #181E25 单元格背景 */
-}
-
-.main-business-table :deep(.el-table__body tr:hover > td) {
-  background-color: var(--background-03) !important;
-}
-
-:global(.dark) .main-business-table :deep(.el-table__body tr:hover > td) {
-  background-color: var(--background-03-dark) !important;
-}
-
-.main-business-table :deep(.el-table td.el-table__cell),
-.main-business-table :deep(.el-table th.el-table__cell.is-leaf) {
-  border-color: var(--border-03);
-}
-
-:global(.dark) .main-business-table :deep(.el-table td.el-table__cell),
-:global(.dark) .main-business-table :deep(.el-table th.el-table__cell.is-leaf) {
-  border-color: var(--border-03-dark);
-}
-
-/* 隐藏多级表头产生的第二行空表头 */
-.main-business-table :deep(.el-table__header tr:nth-child(2)) {
-  display: none;
-}
-
-/* 纵表头背景色 */
-.main-business-table :deep(.row-header-cell) {
-  background-color: #F2F5FA;
-  color: #545E71;
-}
-
-:global(.dark) .main-business-table :deep(.row-header-cell) {
-  background-color: var(--background-03-dark);
-  /* 纵表头背景与横表头一致 */
-  color: #C4CAD5;
-  /* 纵表头文字颜色 */
-}
-
-/* 第一列（分类列）特殊样式：居中加粗 */
-.main-business-table :deep(.el-table__body td:first-child) {
-  font-weight: 500;
-  color: #545E71;
-  text-align: center;
-}
-
-:global(.dark) .main-business-table :deep(.el-table__body td:first-child) {
-  color: #C4CAD5;
-  /* 分类列文字颜色 */
 }
 </style>
