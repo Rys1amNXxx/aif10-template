@@ -1,94 +1,109 @@
 <template>
-  <div class="w-full flex flex-col gap-2">
-    <!-- 下拉菜单和按钮组在同一行 -->
-    <div class="flex items-center gap-3">
-      <div class="radio-container flex-1" :class="{ 'opacity-60 pointer-events-none': tabsLoading }">
-        <div class="flex gap-2">
-          <div v-for="tab in tabs" :key="tab.id" class="mb-tab-btn" :class="{ 'is-active': activeTabId === tab.id }"
-            @click="activeTabId = tab.id">
-            {{ tab.label }}
-          </div>
-        </div>
-      </div>
-      <el-dropdown @command="handleReportChange" trigger="click">
-        <button type="button" class="report-select">
-          <span>{{ selectedReport }}</span>
-          <DropdownArrow class="text-text-11 black:text-text-02-01-dark rotate-180" />
-        </button>
-        <template #dropdown>
-          <el-dropdown-menu>
-            <el-dropdown-item v-for="report in reportOptions" :key="report" :command="report"
-              :class="{ 'is-active': selectedReport === report }">
-              {{ report }}
-            </el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
-    </div>
-
-    <div class="grid grid-cols-1 gap-4 xl:grid-cols-3">
-      <div v-for="panel in chartPanels" :key="panel.key" class="rounded-xl">
-        <div class="relative h-[220px]">
-          <div v-if="chartLoading"
-            class="absolute inset-0 flex items-center justify-center text-xs text-text-04 black:text-text-04-dark">
-            图表加载中…
-          </div>
-          <div v-else-if="!chartConfigs[panel.key]"
-            class="absolute inset-0 flex items-center justify-center text-xs text-text-04 black:text-text-04-dark">
-            暂无数据
-          </div>
-          <div class="h-full" :ref="el => setChartRef(panel.key, el as HTMLElement)"></div>
+  <div class="w-full flex items-center justify-between">
+    <!-- 按钮组在左侧 -->
+    <div class="radio-container" :class="{ 'opacity-60 pointer-events-none': tabsLoading }">
+      <div class="flex gap-2">
+        <div v-for="tab in tabs" :key="tab.id" class="flex items-center justify-center h-[26px] min-w-[68px] px-2 
+        text-xs rounded cursor-pointer transition-all leading-none whitespace-nowrap border shadow-sm
+             bg-white border-[#E0E4EA] text-[#2A354E] hover:bg-[#F2F5FA]
+             black:bg-[#1D273F] black:border-[#545E71] black:text-[#F2F5FA] black:shadow-none" :class="[
+              activeTabId === tab.id
+                ? 'bg-[#EFF0FF] !text-[#636FFF] !border-[#636FFF] font-normal black:!bg-[#2C375D] black:!text-[#7E8DFF] black:!border-[#7E8DFF]'
+                : ''
+            ]" @click="activeTabId = tab.id">
+          {{ tab.label }}
         </div>
       </div>
     </div>
+    <!-- 下拉菜单 -->
+    <el-dropdown @command="handleReportChange" trigger="click">
+      <button type="button"
+        class="flex items-center justify-center gap-1.5 w-[90px] h-[26px] rounded border text-xs font-normal transition-all duration-200
+                 bg-white/80 border-[#E0E4EA] text-[#2A354E] hover:border-text-03-dark
+                 black:bg-background-18-dark black:border-border-03-dark hover:black:border-text-04-dark black:text-text-02-01-dark black:shadow-[0_1px_2px_0_rgba(255,255,255,0.05)]">
+        <span>{{ selectedReport }}</span>
+        <DropdownArrow class="text-[#2A354E] black:text-text-02-01-dark rotate-180" />
+      </button>
+      <template #dropdown>
+        <el-dropdown-menu
+          class="text-text-02-01 bg-white black:text-text-02-01-dark black:bg-background-18-dark black:border-border-03-dark">
+          <el-dropdown-item v-for="report in reportOptions" :key="report" :command="report"
+            class="!text-xs hover:!bg-background-03 hover:!text-text-02-01 black:hover:!bg-background-03-dark black:hover:!text-text-02-01-dark"
+            :class="[
+              selectedReport === report
+                ? '!bg-[#FFFFFF] !text-[#636FFF] font-normal black:!bg-background-18-dark black:!text-text-05-dark'
+                : ''
+            ]">
+            {{ report }}
+          </el-dropdown-item>
+        </el-dropdown-menu>
+      </template>
+    </el-dropdown>
+  </div>
 
-    <el-table v-if="tableRows.length" :data="tableRows" :span-method="objectSpanMethod" class="main-business-table"
-      border size="small">
-      <el-table-column label="业务名称" align="center">
-        <el-table-column prop="category" width="70" align="center" class-name="row-header-cell" />
-        <el-table-column prop="businessName" min-width="140" align="center" class-name="row-header-cell" />
-      </el-table-column>
-      <el-table-column prop="revenue" label="营业收入（元）" align="right" min-width="110">
-        <template #default="{ row }">
-          {{ formatAmount(row.revenue) }}
-        </template>
-      </el-table-column>
-      <el-table-column prop="revenueRatio" label="收入比例" align="right" width="85">
-        <template #default="{ row }">
-          {{ formatPercent(row.revenueRatio) }}
-        </template>
-      </el-table-column>
-      <el-table-column prop="cost" label="营业成本（元）" align="right" min-width="110">
-        <template #default="{ row }">
-          {{ formatAmount(row.cost) }}
-        </template>
-      </el-table-column>
-      <el-table-column prop="costRatio" label="成本比例" align="right" width="85">
-        <template #default="{ row }">
-          {{ formatPercent(row.costRatio) }}
-        </template>
-      </el-table-column>
-      <el-table-column prop="profit" label="主营利润（元）" align="right" min-width="110">
-        <template #default="{ row }">
-          {{ formatAmount(row.profit) }}
-        </template>
-      </el-table-column>
-      <el-table-column prop="profitRatio" label="利润比例" align="right" width="85">
-        <template #default="{ row }">
-          {{ formatPercent(row.profitRatio) }}
-        </template>
-      </el-table-column>
-      <el-table-column prop="grossMargin" label="毛利率" align="right" width="80">
-        <template #default="{ row }">
-          {{ formatPercent(row.grossMargin) }}
-        </template>
-      </el-table-column>
-    </el-table>
-    <div v-else
-      class="flex h-32 items-center justify-center rounded-lg border border-dashed border-border-03 text-sm text-text-04 black:border-border-03-dark black:text-text-04-dark">
-      暂无明细数据
+  <div class="grid grid-cols-1 gap-4 xl:grid-cols-3">
+    <div v-for="panel in chartPanels" :key="panel.key" class="rounded-xl">
+      <div class="relative h-[220px]">
+        <div v-if="chartLoading"
+          class="absolute inset-0 flex items-center justify-center text-xs text-text-04 black:text-text-04-dark">
+          图表加载中…
+        </div>
+        <div v-else-if="!chartConfigs[panel.key]"
+          class="absolute inset-0 flex items-center justify-center text-xs text-text-04 black:text-text-04-dark">
+          暂无数据
+        </div>
+        <div class="h-full" :ref="el => setChartRef(panel.key, el as HTMLElement)"></div>
+      </div>
     </div>
   </div>
+
+  <el-table v-if="tableRows.length" :data="tableRows" :span-method="objectSpanMethod" class="main-business-table" border
+    size="small">
+    <el-table-column label="业务名称" align="center">
+      <el-table-column prop="category" width="70" align="center" class-name="row-header-cell" />
+      <el-table-column prop="businessName" min-width="140" align="center" class-name="row-header-cell" />
+    </el-table-column>
+    <el-table-column prop="revenue" label="营业收入（元）" align="right" min-width="110">
+      <template #default="{ row }">
+        {{ formatAmount(row.revenue) }}
+      </template>
+    </el-table-column>
+    <el-table-column prop="revenueRatio" label="收入比例" align="right" width="85">
+      <template #default="{ row }">
+        {{ formatPercent(row.revenueRatio) }}
+      </template>
+    </el-table-column>
+    <el-table-column prop="cost" label="营业成本（元）" align="right" min-width="110">
+      <template #default="{ row }">
+        {{ formatAmount(row.cost) }}
+      </template>
+    </el-table-column>
+    <el-table-column prop="costRatio" label="成本比例" align="right" width="85">
+      <template #default="{ row }">
+        {{ formatPercent(row.costRatio) }}
+      </template>
+    </el-table-column>
+    <el-table-column prop="profit" label="主营利润（元）" align="right" min-width="110">
+      <template #default="{ row }">
+        {{ formatAmount(row.profit) }}
+      </template>
+    </el-table-column>
+    <el-table-column prop="profitRatio" label="利润比例" align="right" width="85">
+      <template #default="{ row }">
+        {{ formatPercent(row.profitRatio) }}
+      </template>
+    </el-table-column>
+    <el-table-column prop="grossMargin" label="毛利率" align="right" width="80">
+      <template #default="{ row }">
+        {{ formatPercent(row.grossMargin) }}
+      </template>
+    </el-table-column>
+  </el-table>
+  <div v-else
+    class="flex h-32 items-center justify-center rounded-lg border border-dashed border-border-03 text-sm text-text-04 black:border-border-03-dark black:text-text-04-dark">
+    暂无明细数据
+  </div>
+
 
 </template>
 
@@ -770,68 +785,6 @@ watch(
 </script>
 
 <style scoped>
-/* CSS 变量定义 - 亮色主题 */
-.w-full {
-  --mb-tab-bg: #FFFFFF;
-  --mb-tab-border: rgba(224, 228, 234, 1);
-  --mb-tab-color: #2A354E;
-  --mb-tab-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --mb-tab-hover-bg: #F2F5FA;
-  --mb-tab-active-bg: #E7EAFA;
-  --mb-tab-active-color: #636FFF;
-  --mb-tab-active-border: #636FFF;
-}
-
-/* CSS 变量定义 - 暗色主题 */
-:global(.dark) .w-full {
-  --mb-tab-bg: #1D273F;
-  --mb-tab-border: #545E71;
-  --mb-tab-color: #ffffff;
-  --mb-tab-shadow: none;
-  --mb-tab-hover-bg: #374152;
-  --mb-tab-active-bg: #2C375D;
-  --mb-tab-active-color: #F2F5FA;
-  --mb-tab-active-border: #7E8DFF;
-}
-
-/* 下拉菜单按钮 */
-.report-select {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 6px;
-  border-radius: 4px;
-  border: 1px solid rgba(224, 228, 234, 1);
-  background-color: var(--background-01);
-  font-size: 12px;
-  line-height: 1.25rem;
-  font-weight: 400;
-  color: #2A354E;
-  transition: all 0.2s ease;
-  width: 90px;
-  height: 26px;
-}
-
-.report-select:hover {
-  background-color: var(--background-03);
-}
-
-:global(.dark) .report-select {
-  box-shadow: 0 1px 2px 0 rgba(255, 255, 255, 0.05);
-}
-
-/* 下拉菜单选中项样式 */
-:deep(.el-dropdown-menu__item.is-active) {
-  background-color: var(--background-07);
-  color: var(--text-05);
-  font-weight: 500;
-}
-
-:global(.dark) :deep(.el-dropdown-menu__item.is-active) {
-  background-color: var(--background-07-dark);
-  color: var(--text-05-dark);
-}
-
 /* 按钮组容器 */
 .radio-container {
   overflow-x: auto;
@@ -850,40 +803,6 @@ watch(
   background-color: #1D273F;
 }
 
-/* 主营业务标签按钮样式 - 使用CSS变量 */
-.mb-tab-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 26px;
-  min-width: 68px;
-  padding: 0 8px;
-  font-size: 12px;
-  font-weight: 400;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  line-height: 1;
-  white-space: nowrap;
-
-  /* 使用 CSS 变量，自动响应主题切换 */
-  background-color: var(--mb-tab-bg);
-  border: 1px solid var(--mb-tab-border);
-  color: var(--mb-tab-color);
-  box-shadow: var(--mb-tab-shadow);
-}
-
-.mb-tab-btn:hover {
-  background-color: var(--mb-tab-hover-bg);
-}
-
-.mb-tab-btn.is-active {
-  background-color: var(--mb-tab-active-bg);
-  color: var(--mb-tab-active-color);
-  border: 1px solid var(--mb-tab-active-border);
-  box-shadow: inset 0 0 0 1px var(--mb-tab-active-border);
-  font-weight: 500;
-}
 
 /* Element Plus 表格样式覆盖 */
 .main-business-table {
