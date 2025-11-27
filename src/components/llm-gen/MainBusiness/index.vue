@@ -519,10 +519,6 @@ const aggregatePieDataFromTable = (rows: TableRow[], categoryKey: ChartCategory,
   // 1. 筛选属于当前分类（如“按行业”）的行
   const filteredRows = rows.filter(row => row.category === targetCategory);
   if (!filteredRows.length) return [];
-
-  // 2. 提取数据：name = businessName, value = 对应的数值列（如 revenue/cost/profit）
-  // valueKey 是当前选中的 tabId，如 'revenue', 'cost', 'profit'
-  // 注意：表格行里的 key 需要和 tabId 对应。如果不完全对应需要做映射
   const metricKey = valueKey === 'revenue' ? 'revenue' :
     valueKey === 'cost' ? 'cost' :
       valueKey === 'profit' ? 'profit' : 'revenue';
@@ -530,7 +526,7 @@ const aggregatePieDataFromTable = (rows: TableRow[], categoryKey: ChartCategory,
   return filteredRows.map(row => ({
     name: String(row.businessName || ''),
     value: Number(row[metricKey] || 0)
-  })).filter(item => item.value > 0); // 过滤掉 0 值
+  })).filter(item => item.value > 0);
 };
 
 const normalizeChartConfig = (config: any): ChartRenderPayload | null => {
@@ -670,7 +666,6 @@ function scalePieValues(values: PieValue[], scale: number) {
 function createPieChartConfig(centerTitle: string, values: PieValue[], centerValue?: string): ChartRenderPayload {
   // 计算总值用于显示在中间（如果未提供 centerValue）
   const total = values.reduce((sum, item) => sum + item.value, 0).toFixed(2);
-  const displayValue = centerValue ?? `${total}${tableUnit.value}`;
 
   const titleColor = isDark.value ? '#C4CAD5' : 'rgba(0,0,0,0.6)';
   const subtitleColor = isDark.value ? '#A9B2BE' : '#6B7280';
@@ -685,7 +680,7 @@ function createPieChartConfig(centerTitle: string, values: PieValue[], centerVal
       main: {
         title: [
           {
-            text: `{mainTitle|${centerTitle}}`, // 显示总值
+            text: `{mainTitle|${centerTitle}}`,
             left: 'center',
             top: 'center',
             textStyle: {
@@ -698,13 +693,6 @@ function createPieChartConfig(centerTitle: string, values: PieValue[], centerVal
             }
           }
         ],
-        legend: {
-          bottom: 0,
-          icon: 'circle',
-          textStyle: {
-            color: isDark.value ? '#C4CAD5' : '#545E71'
-          }
-        },
         layers: [
           {
             type: 'pie',
@@ -725,6 +713,24 @@ function createPieChartConfig(centerTitle: string, values: PieValue[], centerVal
         ]
       }
     },
+    token: {
+      dvStandardChart: {
+        baseOption: {
+          legend: {
+            textStyle: {
+              color: isDark.value ? '#C4CAD5' : '#545E71'
+            },
+            backgroundColor: 'transparent',
+            dvPagination: {
+              color: isDark.value ? '#C4CAD5' : '#545E71',
+            },
+          },
+          tooltip: {
+            show: false,
+          }
+        },
+      },
+    }
   }
 }
 
