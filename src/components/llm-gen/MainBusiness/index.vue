@@ -112,11 +112,12 @@
                      bg-background-03 text-text-03 black:bg-background-03-dark black:text-text-03-dark align-middle">
               {{ row.category }}
             </td>
-            <!-- 业务名称（不可点击，但显示选中指示） -->
+            <!-- 业务名称（点击选中整行） -->
             <td
               class="min-w-[140px] px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark text-center
-                       bg-background-03 text-text-03 black:bg-background-03-dark black:text-text-03-dark transition-colors"
-              :class="getBusinessNameCellClass(rowIndex)">
+                       bg-background-03 text-text-03 black:bg-background-03-dark black:text-text-03-dark cursor-pointer transition-colors"
+              :class="getBusinessNameCellClass(rowIndex)" @mouseenter="hoverRowIndex = rowIndex"
+              @click="handleBusinessNameClick(rowIndex)">
               {{ row.businessName }}
             </td>
             <!-- 数据列 -->
@@ -626,6 +627,18 @@ const handleRowHeaderClick = (rowIndex: number) => {
   selectedCell.value = null;
 };
 
+// 处理业务名称单元格点击（选中整行）
+const handleBusinessNameClick = (rowIndex: number) => {
+  if (selectedRowIndex.value === rowIndex) {
+    selectedRowIndex.value = null;
+  } else {
+    selectedRowIndex.value = rowIndex;
+  }
+  // 清除列和单元格选中
+  selectedColIndex.value = null;
+  selectedCell.value = null;
+};
+
 // 处理数据单元格悬停
 const handleCellHover = (rowIndex: number, colIndex: number) => {
   hoverRowIndex.value = rowIndex;
@@ -726,13 +739,19 @@ const getRowHeaderClass = (rowIndex: number, isCategory: boolean = false) => {
   return classes.join(' ');
 };
 
-// 获取业务名称单元格的样式类（不可点击，但显示行指示效果）
+// 获取业务名称单元格的样式类（点击选中整行）
 const getBusinessNameCellClass = (rowIndex: number) => {
   const classes: string[] = [];
 
   // 行悬停
   if (hoverRowIndex.value === rowIndex) {
     classes.push('row-hover');
+  }
+
+  // 行选中（点击业务名称时整行高亮）
+  if (selectedRowIndex.value === rowIndex) {
+    classes.push('row-selected');
+    classes.push('row-selected-first-col'); // 添加左边框
   }
 
   // 单元格选中时的行标题指示（右边框变色）
