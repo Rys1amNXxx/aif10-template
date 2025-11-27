@@ -8,6 +8,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     BusinessAbility: typeof import('./src/components/llm-gen/BusinessAbility/index.vue')['default']
+    BusinessData: typeof import('./src/components/llm-gen/BusinessData/index.vue')['default']
     DropdownArrow: typeof import('./src/components/icons/DropdownArrow.vue')['default']
     ElDropdown: typeof import('element-plus/es')['ElDropdown']
     ElDropdownItem: typeof import('element-plus/es')['ElDropdownItem']

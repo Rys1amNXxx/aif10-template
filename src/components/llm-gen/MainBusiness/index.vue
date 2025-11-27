@@ -8,7 +8,7 @@
              bg-white border-border-03 text-text-02-01 hover:bg-background-03 hover:black:bg-background-03-dark
              black:bg-[#1D273F] black:border-border-03-dark black:text-text-11-dark black:shadow-none" :class="[
               activeTabId === tab.id
-                ? 'bg-background-07 !text-text-05 !border-border-04 font-normal black:!bg-[#2C375D] black:!text-text-05-dark black:!border-border-04-dark'
+                ? 'bg-[#E7EAFA] !text-text-05 !border-border-04 font-normal black:!bg-[#2C375D] black:!text-text-05-dark black:!border-border-04-dark'
                 : ''
             ]" @click="activeTabId = tab.id">
           {{ tab.label }}
@@ -59,7 +59,7 @@
 
   <!-- 原生表格 -->
   <div v-if="tableRows.length" class="overflow-x-auto">
-    <table class="w-full text-xs border-collapse">
+    <table class="w-full text-xs border-collapse table-interactive" @mouseleave="clearHover">
       <!-- 表头 -->
       <thead>
         <tr class="bg-[#F2F5FA] text-text-03 black:bg-background-03-dark black:text-text-03-dark">
@@ -67,27 +67,38 @@
             业务名称
           </th>
           <th
-            class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark font-medium text-center min-w-[110px]">
+            class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark font-medium text-center min-w-[110px] cursor-pointer transition-colors"
+            :class="getHeaderCellClass(1)" @mouseenter="handleHeaderHover(1)" @click="handleHeaderClick(1)">
             营业收入（元）
           </th>
-          <th class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark font-medium text-center w-[85px]">
+          <th
+            class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark font-medium text-center w-[85px] cursor-pointer transition-colors"
+            :class="getHeaderCellClass(2)" @mouseenter="handleHeaderHover(2)" @click="handleHeaderClick(2)">
             收入比例
           </th>
           <th
-            class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark font-medium text-center min-w-[110px]">
+            class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark font-medium text-center min-w-[110px] cursor-pointer transition-colors"
+            :class="getHeaderCellClass(3)" @mouseenter="handleHeaderHover(3)" @click="handleHeaderClick(3)">
             营业成本（元）
           </th>
-          <th class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark font-medium text-center w-[85px]">
+          <th
+            class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark font-medium text-center w-[85px] cursor-pointer transition-colors"
+            :class="getHeaderCellClass(4)" @mouseenter="handleHeaderHover(4)" @click="handleHeaderClick(4)">
             成本比例
           </th>
           <th
-            class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark font-medium text-center min-w-[110px]">
+            class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark font-medium text-center min-w-[110px] cursor-pointer transition-colors"
+            :class="getHeaderCellClass(5)" @mouseenter="handleHeaderHover(5)" @click="handleHeaderClick(5)">
             主营利润（元）
           </th>
-          <th class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark font-medium text-center w-[85px]">
+          <th
+            class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark font-medium text-center w-[85px] cursor-pointer transition-colors"
+            :class="getHeaderCellClass(6)" @mouseenter="handleHeaderHover(6)" @click="handleHeaderClick(6)">
             利润比例
           </th>
-          <th class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark font-medium text-center w-[80px]">
+          <th
+            class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark font-medium text-center w-[80px] cursor-pointer transition-colors"
+            :class="getHeaderCellClass(7)" @mouseenter="handleHeaderHover(7)" @click="handleHeaderClick(7)">
             毛利率
           </th>
         </tr>
@@ -95,44 +106,60 @@
       <!-- 表格内容 -->
       <tbody>
         <template v-for="(row, rowIndex) in tableRows" :key="rowIndex">
-          <tr class="bg-background-00 black:bg-background-00-dark hover:bg-[#F8FAFC] black:hover:bg-background-03-dark">
-            <!-- 分类列 - 动态 rowspan -->
+          <tr :class="getRowClass(rowIndex)">
+            <!-- 分类列 - 动态 rowspan（不可交互） -->
             <td v-if="shouldShowCategoryCell(rowIndex)" :rowspan="getCategoryRowspan(rowIndex)" class="w-[70px] px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark text-center font-medium
-                       bg-background-03 text-text-03 black:bg-background-03-dark black:text-text-03-dark align-middle">
+                     bg-background-03 text-text-03 black:bg-background-03-dark black:text-text-03-dark align-middle">
               {{ row.category }}
             </td>
-            <!-- 业务名称 -->
-            <td class="min-w-[140px] px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark text-center
-                       bg-background-03 text-text-03 black:bg-background-03-dark black:text-text-03-dark">
+            <!-- 业务名称（不可点击，但显示选中指示） -->
+            <td
+              class="min-w-[140px] px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark text-center
+                       bg-background-03 text-text-03 black:bg-background-03-dark black:text-text-03-dark transition-colors"
+              :class="getBusinessNameCellClass(rowIndex)">
               {{ row.businessName }}
             </td>
             <!-- 数据列 -->
             <td
-              class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark black:bg-background-01-dark text-right text-text-02-01 black:text-text-02-02-dark">
+              class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark black:bg-background-01-dark text-right text-text-02-01 black:text-text-02-02-dark cursor-pointer transition-colors"
+              :class="getDataCellClass(rowIndex, 2)" @mouseenter="handleCellHover(rowIndex, 2)"
+              @click="handleCellClick(rowIndex, 2)">
               {{ formatAmount(row.revenue) }}
             </td>
             <td
-              class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark text-right black:bg-background-01-dark text-text-02-01 black:text-text-02-02-dark">
+              class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark text-right black:bg-background-01-dark text-text-02-01 black:text-text-02-02-dark cursor-pointer transition-colors"
+              :class="getDataCellClass(rowIndex, 3)" @mouseenter="handleCellHover(rowIndex, 3)"
+              @click="handleCellClick(rowIndex, 3)">
               {{ formatPercent(row.revenueRatio) }}
             </td>
             <td
-              class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark text-right black:bg-background-01-dark text-text-02-01 black:text-text-02-02-dark">
+              class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark text-right black:bg-background-01-dark text-text-02-01 black:text-text-02-02-dark cursor-pointer transition-colors"
+              :class="getDataCellClass(rowIndex, 4)" @mouseenter="handleCellHover(rowIndex, 4)"
+              @click="handleCellClick(rowIndex, 4)">
               {{ formatAmount(row.cost) }}
             </td>
             <td
-              class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark text-right black:bg-background-01-dark text-text-02-01 black:text-text-02-02-dark">
+              class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark text-right black:bg-background-01-dark text-text-02-01 black:text-text-02-02-dark cursor-pointer transition-colors"
+              :class="getDataCellClass(rowIndex, 5)" @mouseenter="handleCellHover(rowIndex, 5)"
+              @click="handleCellClick(rowIndex, 5)">
               {{ formatPercent(row.costRatio) }}
             </td>
             <td
-              class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark text-right black:bg-background-01-dark text-text-02-01 black:text-text-02-02-dark">
+              class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark text-right black:bg-background-01-dark text-text-02-01 black:text-text-02-02-dark cursor-pointer transition-colors"
+              :class="getDataCellClass(rowIndex, 6)" @mouseenter="handleCellHover(rowIndex, 6)"
+              @click="handleCellClick(rowIndex, 6)">
               {{ formatAmount(row.profit) }}
             </td>
             <td
-              class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark text-right black:bg-background-01-dark text-text-02-01 black:text-text-02-02-dark">
+              class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark text-right black:bg-background-01-dark text-text-02-01 black:text-text-02-02-dark cursor-pointer transition-colors"
+              :class="getDataCellClass(rowIndex, 7)" @mouseenter="handleCellHover(rowIndex, 7)"
+              @click="handleCellClick(rowIndex, 7)">
               {{ formatPercent(row.profitRatio) }}
             </td>
             <td
-              class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark text-right black:bg-background-01-dark text-text-02-01 black:text-text-02-02-dark">
+              class="px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark text-right black:bg-background-01-dark text-text-02-01 black:text-text-02-02-dark cursor-pointer transition-colors"
+              :class="getDataCellClass(rowIndex, 8)" @mouseenter="handleCellHover(rowIndex, 8)"
+              @click="handleCellClick(rowIndex, 8)">
               {{ formatPercent(row.grossMargin) }}
             </td>
           </tr>
@@ -221,9 +248,15 @@ const props = defineProps<MainBusinessProps>();
 const CHART_KEYS: ChartCategory[] = ['industry', 'product', 'region'];
 const chartPanels = componentConfig.mockData.chartPanels as { key: ChartCategory; title: string }[];
 
-const tabs = ref<TabItem[]>([]);
+// 固定的tabs配置，不再从外部获取
+const FIXED_TABS: TabItem[] = [
+  { id: 'revenue', label: '营业收入' },
+  { id: 'cost', label: '营业成本' },
+  { id: 'profit', label: '利润总额' }
+];
+const tabs = ref<TabItem[]>(FIXED_TABS);
 const tabsLoading = ref(false);
-const activeTabId = ref('');
+const activeTabId = ref('revenue');
 const chartLoading = ref(false);
 const chartConfigs = reactive<Record<ChartCategory, ChartRenderPayload | null>>({
   industry: null,
@@ -243,11 +276,19 @@ const selectedReport = ref(componentConfig.mockData.reportOptions[0]);
 const reportOptions = componentConfig.mockData.reportOptions;
 const isDark = ref(false);
 
+// ========== 表格交互状态 ==========
+// 悬停状态
+const hoverColIndex = ref<number | null>(null);
+const hoverRowIndex = ref<number | null>(null);
+
+// 选中状态
+const selectedColIndex = ref<number | null>(null);
+const selectedRowIndex = ref<number | null>(null);
+const selectedCell = ref<{ row: number; col: number } | null>(null);
+
 const activeTabLabel = computed(() => tabs.value.find(item => item.id === activeTabId.value)?.label ?? '');
 
 const baseTableColumns: TableColumn[] = componentConfig.mockData.tableColumns as TableColumn[];
-
-const mockTabs: TabItem[] = componentConfig.mockData.tabs;
 
 // 业务名称归类规则
 const businessCategoryMap: Record<string, string> = componentConfig.mockData.businessCategoryMap;
@@ -275,58 +316,10 @@ const pieTemplates = componentConfig.mockData.pieTemplates;
 
 const getApiByAlias = (alias: string) => props.params?.apis?.find(api => api.alias === alias);
 
-const normalizeTabs = (raw: any): TabItem[] => {
-  if (!raw) return [];
-  const list = Array.isArray(raw) ? raw : raw.tabs ?? raw.businessTabs ?? raw.business_name_list ?? raw.data ?? [];
-  if (!Array.isArray(list)) return [];
-  return list
-    .map((item: any, index: number) => ({
-      id: String(item.id ?? item.value ?? item.alias ?? item.key ?? index),
-      label: item.label ?? item.name ?? item.title ?? item.text ?? `选项${index + 1}`
-    }))
-    .filter(item => item.id && item.label);
-};
-
-const setTabs = (list: TabItem[]) => {
-  tabs.value = list;
-  if (!list.length) {
-    activeTabId.value = '';
-    return;
-  }
-  if (!list.some(item => item.id === activeTabId.value)) {
-    activeTabId.value = list[0].id;
-  }
-};
-
-const fetchTabs = async () => {
-  tabsLoading.value = true;
-  try {
-    if (Array.isArray(props.data?.tabs) && props.data?.tabs.length) {
-      const normalized = normalizeTabs(props.data.tabs);
-      setTabs(normalized.length ? normalized : mockTabs);
-      return;
-    }
-    const api = getApiByAlias('tabs');
-    if (!api) {
-      setTabs(mockTabs);
-      return;
-    }
-    const url = processUrl(api.url);
-    const method = api.method?.toLowerCase?.() ?? 'get';
-    const params = processParams(api.params || {});
-    const response = await axios({
-      method,
-      url,
-      params: method === 'get' ? params : undefined,
-      data: method !== 'get' ? params : undefined
-    });
-    const normalized = normalizeTabs(response.data?.data ?? response.data);
-    setTabs(normalized.length ? normalized : mockTabs);
-  } catch (error) {
-    console.error('获取tabs失败:', error);
-    setTabs(mockTabs);
-  } finally {
-    tabsLoading.value = false;
+const initTabs = () => {
+  tabs.value = FIXED_TABS;
+  if (!activeTabId.value) {
+    activeTabId.value = FIXED_TABS[0].id;
   }
 };
 
@@ -351,22 +344,24 @@ const pickExternalChartPayload = (tabId: string): ChartAndTablePayload | undefin
   return undefined;
 };
 
-const fetchCharts = async (tabId: string) => {
-  if (!tabId) return;
-
+// 初始化时获取表格数据（只在首次加载时调用）
+const fetchTableData = async () => {
+  // 优先从 props 获取数据
   if (isFirstChartFromProps.value) {
-    const externalPayload = pickExternalChartPayload(tabId);
+    const externalPayload = pickExternalChartPayload('revenue');
     if (externalPayload) {
-      applyChartPayload(externalPayload, tabId);
+      applyTableData(externalPayload);
       isFirstChartFromProps.value = false;
+      updatePieChartsForTab(activeTabId.value);
       return;
     }
   }
 
   const api = getApiByAlias('composition');
   if (!api) {
-    applyChartPayload(mockChartDataset[tabId] ?? mockChartDataset.revenue, tabId);
+    applyTableData(mockChartDataset.revenue);
     isFirstChartFromProps.value = false;
+    updatePieChartsForTab(activeTabId.value);
     return;
   }
 
@@ -374,19 +369,8 @@ const fetchCharts = async (tabId: string) => {
   try {
     const url = processUrl(api.url);
     const method = api.method?.toLowerCase?.() ?? 'get';
-    const apiData = { tabs: tabs.value, activeTabId: tabId };
+    const apiData = { tabs: tabs.value, activeTabId: 'revenue' };
     const params = processParams(api.params || {}, apiData);
-
-    if (typeof params === 'object' && params !== null) {
-      if ('tab_id' in params) params.tab_id = tabId;
-      if ('tabKey' in params) params.tabKey = tabId;
-      if ('metric' in params) params.metric = tabId;
-      if (typeof params.extensions === 'object' && params.extensions !== null) {
-        if ('tab_id' in params.extensions) params.extensions.tab_id = tabId;
-        if ('tabKey' in params.extensions) params.extensions.tabKey = tabId;
-        if ('metric' in params.extensions) params.extensions.metric = tabId;
-      }
-    }
 
     const response = await axios({
       method,
@@ -396,31 +380,42 @@ const fetchCharts = async (tabId: string) => {
     });
 
     const payload = response.data?.data ?? response.data;
-    applyChartPayload(payload, tabId);
+    applyTableData(payload);
   } catch (error) {
-    console.error('获取主营构成图表失败:', error);
-    applyChartPayload(mockChartDataset[tabId] ?? mockChartDataset.revenue, tabId);
+    console.error('获取主营构成数据失败:', error);
+    applyTableData(mockChartDataset.revenue);
   } finally {
     chartLoading.value = false;
     isFirstChartFromProps.value = false;
+    // 表格数据加载完成后，根据当前 tab 更新饼图
+    updatePieChartsForTab(activeTabId.value);
   }
 };
 
-const applyChartPayload = (payload: ChartAndTablePayload | undefined, tabKey: string) => {
-  const fallback = mockChartDataset[tabKey] ?? mockChartDataset.revenue;
+// 初始化表格数据（只在首次加载时调用）
+const applyTableData = (payload: ChartAndTablePayload | undefined) => {
+  const fallback = mockChartDataset.revenue;
   const safePayload = payload ?? fallback;
 
-  // 1. 获取最新的表格数据（用于聚合饼图数据）
+  // 1. 设置表格数据
   const incomingRows = safePayload.table?.rows?.length
     ? safePayload.table.rows
     : fallback.table?.rows ?? [];
   tableRows.value = [...incomingRows];
 
-  const chartSource = safePayload.charts ?? safePayload.chartGroup ?? {};
+  const incomingColumns = safePayload.table?.columns?.length
+    ? safePayload.table.columns
+    : fallback.table?.columns ?? baseTableColumns;
+  tableColumns.value = [...incomingColumns];
 
+  tableUnit.value = safePayload.table?.unit ?? fallback.table?.unit ?? tableUnit.value ?? '亿';
+};
+
+// 根据当前选中的 tab 更新饼图（不影响表格数据）
+const updatePieChartsForTab = (tabId: string) => {
   CHART_KEYS.forEach(key => {
-    // 2. 根据表格数据动态生成饼图数据（如果表格有数据，则忽略原本的 charts 数据，保证一致性）
-    const aggregatedData = aggregatePieDataFromTable(tableRows.value, key, tabKey);
+    // 根据表格数据和当前 tab 动态生成饼图数据
+    const aggregatedData = aggregatePieDataFromTable(tableRows.value, key, tabId);
 
     if (aggregatedData && aggregatedData.length > 0) {
       // 使用聚合后的数据构建图表配置
@@ -429,28 +424,24 @@ const applyChartPayload = (payload: ChartAndTablePayload | undefined, tabKey: st
         aggregatedData
       );
     } else {
-      // 降级逻辑：使用原始配置
-      const rawConfig =
-        chartSource[key] ??
-        chartSource[`${key}Chart`] ??
-        chartSource[`${key}_chart`] ??
-        fallback.charts?.[key];
+      // 降级逻辑：使用 mock 数据
+      const fallback = mockChartDataset[tabId] ?? mockChartDataset.revenue;
+      const rawConfig = fallback.charts?.[key];
       chartConfigs[key] = normalizeChartConfig(rawConfig);
     }
   });
 
-  const incomingColumns = safePayload.table?.columns?.length
-    ? safePayload.table.columns
-    : fallback.table?.columns ?? baseTableColumns;
-  tableColumns.value = [...incomingColumns];
-
-  tableUnit.value = safePayload.table?.unit ?? fallback.table?.unit ?? tableUnit.value ?? '亿';
-
   renderCharts();
 };
 
-// 新增：从表格数据聚合饼图数据的函数
-const aggregatePieDataFromTable = (rows: TableRow[], categoryKey: ChartCategory, valueKey: string): PieValue[] => {
+// 兼容旧的调用方式（首次加载时同时设置表格和饼图）
+const applyChartPayload = (payload: ChartAndTablePayload | undefined, tabKey: string) => {
+  applyTableData(payload);
+  updatePieChartsForTab(tabKey);
+};
+
+// 从表格数据聚合饼图数据的函数
+const aggregatePieDataFromTable = (rows: TableRow[], categoryKey: ChartCategory, tabId: string): PieValue[] => {
   // 映射表：将表格的 category 字段映射到对应的图表 key
   // industry: '按行业', product: '按产品', region: '按地区'
   const categoryLabelMap: Record<ChartCategory, string> = {
@@ -462,16 +453,21 @@ const aggregatePieDataFromTable = (rows: TableRow[], categoryKey: ChartCategory,
   const targetCategory = categoryLabelMap[categoryKey];
   if (!targetCategory) return [];
 
-  // 1. 筛选属于当前分类（如“按行业”）的行
+  // 1. 筛选属于当前分类（如"按行业"）的行
   const filteredRows = rows.filter(row => row.category === targetCategory);
   if (!filteredRows.length) return [];
-  const metricKey = valueKey === 'revenue' ? 'revenue' :
-    valueKey === 'cost' ? 'cost' :
-      valueKey === 'profit' ? 'profit' : 'revenue';
+
+  // 2. 根据当前选中的 tab 确定使用哪个比例字段
+  const ratioKeyMap: Record<string, string> = {
+    revenue: 'revenueRatio',
+    cost: 'costRatio',
+    profit: 'profitRatio'
+  };
+  const ratioKey = ratioKeyMap[tabId] || 'revenueRatio';
 
   return filteredRows.map(row => ({
     name: String(row.businessName || ''),
-    value: Number(row[metricKey] || 0)
+    value: Number(row[ratioKey] || 0)
   })).filter(item => item.value > 0);
 };
 
@@ -565,6 +561,239 @@ const getCategoryRowspan = (rowIndex: number): number => {
     nextIndex++;
   }
   return count;
+};
+
+// ========== 表格交互事件处理 ==========
+// 表头列定义（用于索引映射）
+// 列索引: 0=分类, 1=业务名称, 2=营业收入, 3=收入比例, 4=营业成本, 5=成本比例, 6=主营利润, 7=利润比例, 8=毛利率
+const HEADER_COL_RANGES = [
+  { start: 0, end: 1, label: '业务名称' },
+  { start: 2, end: 2, label: '营业收入' },
+  { start: 3, end: 3, label: '收入比例' },
+  { start: 4, end: 4, label: '营业成本' },
+  { start: 5, end: 5, label: '成本比例' },
+  { start: 6, end: 6, label: '主营利润' },
+  { start: 7, end: 7, label: '利润比例' },
+  { start: 8, end: 8, label: '毛利率' }
+];
+
+// 清除所有悬停状态
+const clearHover = () => {
+  hoverColIndex.value = null;
+  hoverRowIndex.value = null;
+};
+
+// 处理表头悬停
+const handleHeaderHover = (headerIndex: number) => {
+  const range = HEADER_COL_RANGES[headerIndex];
+  if (range) {
+    // 对于 colspan 的表头，悬停时高亮整个范围
+    hoverColIndex.value = range.start;
+  }
+};
+
+// 处理表头点击
+const handleHeaderClick = (headerIndex: number) => {
+  const range = HEADER_COL_RANGES[headerIndex];
+  if (!range) return;
+
+  // 切换选中状态
+  if (selectedColIndex.value === range.start) {
+    selectedColIndex.value = null;
+  } else {
+    selectedColIndex.value = range.start;
+  }
+  // 点击列标题时清除单元格和行选中
+  selectedCell.value = null;
+  selectedRowIndex.value = null;
+};
+
+// 处理行标题（分类列）悬停
+const handleRowHeaderHover = (rowIndex: number) => {
+  hoverRowIndex.value = rowIndex;
+  hoverColIndex.value = null;
+};
+
+// 处理行标题（分类列）点击
+const handleRowHeaderClick = (rowIndex: number) => {
+  if (selectedRowIndex.value === rowIndex) {
+    selectedRowIndex.value = null;
+  } else {
+    selectedRowIndex.value = rowIndex;
+  }
+  // 清除列和单元格选中
+  selectedColIndex.value = null;
+  selectedCell.value = null;
+};
+
+// 处理数据单元格悬停
+const handleCellHover = (rowIndex: number, colIndex: number) => {
+  hoverRowIndex.value = rowIndex;
+  hoverColIndex.value = colIndex;
+};
+
+// 处理数据单元格点击
+const handleCellClick = (rowIndex: number, colIndex: number) => {
+  if (selectedCell.value?.row === rowIndex && selectedCell.value?.col === colIndex) {
+    selectedCell.value = null;
+  } else {
+    selectedCell.value = { row: rowIndex, col: colIndex };
+  }
+  // 清除行列选中
+  selectedColIndex.value = null;
+  selectedRowIndex.value = null;
+};
+
+// 判断列是否在悬停的列范围内
+const isColInHoverRange = (colIndex: number): boolean => {
+  if (hoverColIndex.value === null) return false;
+  // 检查是否是 colspan 的表头（业务名称跨 0-1 列）
+  if (hoverColIndex.value === 0 && (colIndex === 0 || colIndex === 1)) {
+    return true;
+  }
+  return hoverColIndex.value === colIndex;
+};
+
+// 判断列是否在选中的列范围内
+const isColInSelectedRange = (colIndex: number): boolean => {
+  if (selectedColIndex.value === null) return false;
+  if (selectedColIndex.value === 0 && (colIndex === 0 || colIndex === 1)) {
+    return true;
+  }
+  return selectedColIndex.value === colIndex;
+};
+
+// 获取表头单元格的样式类
+const getHeaderCellClass = (headerIndex: number) => {
+  const range = HEADER_COL_RANGES[headerIndex];
+  if (!range) return '';
+
+  const classes: string[] = [];
+
+  // 悬停高亮
+  if (hoverColIndex.value !== null && hoverColIndex.value >= range.start && hoverColIndex.value <= range.end) {
+    classes.push('th-col-hover');
+  }
+
+  // 选中状态（点击列标题时整列选中）
+  if (selectedColIndex.value !== null && selectedColIndex.value >= range.start && selectedColIndex.value <= range.end) {
+    classes.push('th-col-selected');
+  }
+
+  // 单元格选中时，对应列标题的下边框指示
+  if (selectedCell.value !== null && selectedCell.value.col >= range.start && selectedCell.value.col <= range.end) {
+    classes.push('th-cell-indicator');
+  }
+
+  return classes.join(' ');
+};
+
+// 获取行标题（分类列 / 业务名称列）的样式类
+const getRowHeaderClass = (rowIndex: number, isCategory: boolean = false) => {
+  const classes: string[] = [];
+
+  // 行悬停
+  if (hoverRowIndex.value === rowIndex) {
+    classes.push('row-hover');
+  }
+
+  // 列悬停（分类列 colIndex=0，业务名称列 colIndex=1）
+  const colIndex = isCategory ? 0 : 1;
+  if (isColInHoverRange(colIndex)) {
+    classes.push('col-hover');
+  }
+
+  // 行选中
+  if (selectedRowIndex.value === rowIndex) {
+    classes.push('row-selected');
+    if (isCategory) {
+      classes.push('row-selected-first-col');
+    }
+  }
+
+  // 列选中
+  if (isColInSelectedRange(colIndex)) {
+    classes.push('col-selected');
+    if (rowIndex === 0) classes.push('col-selected-first');
+    if (rowIndex === tableRows.value.length - 1) classes.push('col-selected-last');
+  }
+
+  // 单元格选中时的行标题指示（右边框变色）
+  if (selectedCell.value !== null && selectedCell.value.row === rowIndex) {
+    classes.push('cell-indicator-row');
+  }
+
+  return classes.join(' ');
+};
+
+// 获取业务名称单元格的样式类（不可点击，但显示行指示效果）
+const getBusinessNameCellClass = (rowIndex: number) => {
+  const classes: string[] = [];
+
+  // 行悬停
+  if (hoverRowIndex.value === rowIndex) {
+    classes.push('row-hover');
+  }
+
+  // 单元格选中时的行标题指示（右边框变色）
+  if (selectedCell.value !== null && selectedCell.value.row === rowIndex) {
+    classes.push('cell-indicator-row');
+  }
+
+  return classes.join(' ');
+};
+
+// 获取数据单元格的样式类
+const getDataCellClass = (rowIndex: number, colIndex: number) => {
+  const classes: string[] = [];
+
+  // 行悬停
+  if (hoverRowIndex.value === rowIndex) {
+    classes.push('row-hover');
+  }
+
+  // 列悬停
+  if (isColInHoverRange(colIndex)) {
+    classes.push('col-hover');
+  }
+
+  // 单元格本身悬停（行+列同时悬停）
+  if (hoverRowIndex.value === rowIndex && isColInHoverRange(colIndex)) {
+    classes.push('cell-hover');
+  }
+
+  // 行选中
+  if (selectedRowIndex.value === rowIndex) {
+    classes.push('row-selected');
+    if (colIndex === tableRows.value.length) {
+      classes.push('row-selected-last-col');
+    }
+  }
+
+  // 列选中
+  if (isColInSelectedRange(colIndex)) {
+    classes.push('col-selected');
+    if (rowIndex === 0) classes.push('col-selected-first');
+    if (rowIndex === tableRows.value.length - 1) classes.push('col-selected-last');
+  }
+
+  // 单元格选中
+  if (selectedCell.value?.row === rowIndex && selectedCell.value?.col === colIndex) {
+    classes.push('cell-selected');
+  }
+
+  return classes.join(' ');
+};
+
+// 获取行的样式类
+const getRowClass = (rowIndex: number) => {
+  const classes: string[] = ['bg-background-00', 'black:bg-background-00-dark'];
+
+  if (selectedRowIndex.value === rowIndex) {
+    classes.push('tr-row-selected');
+  }
+
+  return classes.join(' ');
 };
 
 function createMockPayload(centerTitle: string, total: number, scale: number): ChartAndTablePayload {
@@ -664,8 +893,8 @@ const mockChartDataset: Record<string, ChartAndTablePayload> = Object.fromEntrie
 );
 
 const resetState = () => {
-  tabs.value = [];
-  activeTabId.value = '';
+  tabs.value = FIXED_TABS;
+  activeTabId.value = 'revenue';
   CHART_KEYS.forEach(key => {
     chartConfigs[key] = null;
   });
@@ -676,7 +905,8 @@ const resetState = () => {
 };
 
 const bootstrap = async () => {
-  await fetchTabs();
+  initTabs();
+  await fetchTableData();
 };
 
 let observer: number | null = null;
@@ -712,15 +942,15 @@ onUnmounted(() => {
 watch(isDark, () => {
   // 暗黑模式切换时重新生成图表配置并渲染
   if (activeTabId.value) {
-    // 重新执行 applyChartPayload 逻辑来刷新图表配置
-    const payload = pickExternalChartPayload(activeTabId.value) ?? mockChartDataset[activeTabId.value];
-    applyChartPayload(payload, activeTabId.value);
+    // 只需更新饼图配置，表格数据不变
+    updatePieChartsForTab(activeTabId.value);
   }
 });
 
 watch(activeTabId, (newVal, oldVal) => {
   if (newVal && newVal !== oldVal) {
-    fetchCharts(newVal);
+    // tab 切换只更新饼图，不重新获取表格数据
+    updatePieChartsForTab(newVal);
   }
 });
 
@@ -759,5 +989,148 @@ watch(
 
 :global(.dark) .radio-container {
   background-color: #1D273F;
+}
+
+/* ========== 表格交互样式 ========== */
+
+/* 表格容器 */
+.table-interactive {
+  user-select: none;
+}
+
+/* ---------- 悬停效果 ---------- */
+
+/* 表头列悬停 */
+.th-col-hover {
+  background-color: #E8EBF4 !important;
+}
+
+:global(.dark) .th-col-hover {
+  background-color: #2A3654 !important;
+}
+
+/* 行悬停 */
+.row-hover {
+  background-color: #F5F7FA !important;
+}
+
+:global(.dark) .row-hover {
+  background-color: #1E2942 !important;
+}
+
+/* 列悬停 */
+.col-hover {
+  background-color: #F5F7FA !important;
+}
+
+:global(.dark) .col-hover {
+  background-color: #1E2942 !important;
+}
+
+/* 单元格悬停（行+列交叉） */
+.cell-hover {
+  background-color: #EDF0F7 !important;
+  box-shadow: inset 0 0 0 1px #C5CAD9;
+}
+
+:global(.dark) .cell-hover {
+  background-color: #263050 !important;
+  box-shadow: inset 0 0 0 1px #3D4A6B;
+}
+
+/* ---------- 选中效果 ---------- */
+
+/* 表头列选中 */
+.th-col-selected {
+  background-color: #EEF0FF !important;
+  border-left: 2px solid #636FFF !important;
+  border-right: 2px solid #636FFF !important;
+  border-top: 2px solid #636FFF !important;
+}
+
+:global(.dark) .th-col-selected {
+  background-color: #2C375D !important;
+  border-left: 2px solid #636FFF !important;
+  border-right: 2px solid #636FFF !important;
+  border-top: 2px solid #636FFF !important;
+}
+
+/* 列选中（数据单元格） */
+.col-selected {
+  background-color: #F8F9FF !important;
+  border-left: 2px solid #636FFF !important;
+  border-right: 2px solid #636FFF !important;
+}
+
+:global(.dark) .col-selected {
+  background-color: #252F4D !important;
+  border-left: 2px solid #636FFF !important;
+  border-right: 2px solid #636FFF !important;
+}
+
+/* 列选中 - 最后一行 */
+.col-selected-last {
+  border-bottom: 2px solid #636FFF !important;
+}
+
+/* 行选中 */
+.row-selected {
+  background-color: #F8F9FF !important;
+  border-top: 2px solid #636FFF !important;
+  border-bottom: 2px solid #636FFF !important;
+}
+
+:global(.dark) .row-selected {
+  background-color: #252F4D !important;
+  border-top: 2px solid #636FFF !important;
+  border-bottom: 2px solid #636FFF !important;
+}
+
+/* 行选中 - 第一列（左边框） */
+.row-selected-first-col {
+  border-left: 2px solid #636FFF !important;
+}
+
+/* 行选中 - 最后列（右边框） */
+.row-selected-last-col {
+  border-right: 2px solid #636FFF !important;
+}
+
+/* 单元格选中 */
+.cell-selected {
+  background-color: #F0F2FF !important;
+  outline: 2px solid #636FFF;
+  outline-offset: -2px;
+  position: relative;
+  z-index: 1;
+}
+
+:global(.dark) .cell-selected {
+  background-color: #2C375D !important;
+}
+
+/* 单元格选中时的行标题指示（右边框变色） */
+.cell-indicator-row {
+  background-color: #F0F2FF !important;
+  border-right: 2px solid #636FFF !important;
+}
+
+:global(.dark) .cell-indicator-row {
+  background-color: #2C375D !important;
+}
+
+/* 单元格选中时的列标题指示（表头下边框变色） */
+.th-cell-indicator {
+  background-color: #F0F2FF !important;
+  border-bottom: 2px solid #636FFF !important;
+}
+
+:global(.dark) .th-cell-indicator {
+  background-color: #2C375D !important;
+}
+
+/* tr 行选中辅助样式 */
+.tr-row-selected td:last-child {
+  border-right: 2px solid #636FFF !important;
 }
 </style>

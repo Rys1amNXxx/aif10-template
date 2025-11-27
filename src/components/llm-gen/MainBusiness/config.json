@@ -3,81 +3,48 @@
   "fitHeight": true,
   "apis": [
     {
-      "method": "get",
-      "isFirstScreen": true,
-      "alias": "tabs",
-      "url": "https://data.10jqka.com.cn/basicapi/operate/mainbusiness/v1/tabs",
-      "params": {
-        "code": "${code}",
-        "market": "${market}",
-        "locale": "zh_CN",
-        "noWithCredentials": 1
-      },
-      "returnValExample": {
-        "tabs": [
-          { "id": "revenue", "name": "营业收入" },
-          { "id": "cost", "name": "营业成本" },
-          { "id": "profit", "name": "利润总额" }
-        ]
-      }
-    },
-    {
       "method": "post",
       "isFirstScreen": true,
       "alias": "composition",
-      "depends": ["tabs"],
       "url": "https://data.10jqka.com.cn/basicapi/visual/smart/index/v1/visual",
       "params": {
         "config_id": "main_business_composition_fetcher",
         "subjects": ["${market}-${code}"],
         "engine": "default",
         "strategy": "newest",
-        "source": "http_custom",
-        "extensions": {
-          "tab_id": "${tabs[0].id}"
-        }
+        "source": "http_custom"
       },
       "returnValExample": {
-        "charts": {
-          "industry": {
-            "data": [
-              {
-                "values": [
-                  { "name": "整车业务", "value": 5023.36 },
-                  { "name": "零部件业务", "value": 1828.25 }
-                ]
-              }
-            ],
-            "view": {
-              "main": {
-                "layers": [
-                  {
-                    "type": "pie",
-                    "encoding": { "x": "name", "y": "value" },
-                    "radius": ["35%", "60%"]
-                  }
-                ]
-              }
-            }
-          }
-        },
         "table": {
           "columns": [
             { "key": "businessName", "label": "业务名称" },
-            { "key": "revenue", "label": "营业收入（元）" }
+            { "key": "revenue", "label": "营业收入（元）" },
+            { "key": "revenueRatio", "label": "收入比例" },
+            { "key": "cost", "label": "营业成本（元）" },
+            { "key": "costRatio", "label": "成本比例" },
+            { "key": "profit", "label": "主营利润（元）" },
+            { "key": "profitRatio", "label": "利润比例" },
+            { "key": "grossMargin", "label": "毛利率" }
           ],
-          "rows": [{ "businessName": "整车业务", "revenue": 5023.36 }],
+          "rows": [
+            {
+              "businessName": "整车业务",
+              "revenue": 5023.36,
+              "revenueRatio": 67.56,
+              "cost": 4753.14,
+              "costRatio": 72.25,
+              "profit": 238.35,
+              "profitRatio": 32.52,
+              "grossMargin": 5.79,
+              "category": "按产品"
+            }
+          ],
           "unit": "亿"
         }
       }
     }
   ],
   "mockData": {
-    "tabs": [
-      { "id": "revenue", "label": "营业收入" },
-      { "id": "cost", "label": "营业成本" },
-      { "id": "profit", "label": "利润总额" }
-    ],
     "reportOptions": ["2023年报", "2022年报", "2021年报"],
     "chartPanels": [
       { "key": "industry", "title": "按行业分" },

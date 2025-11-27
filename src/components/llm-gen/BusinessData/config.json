@@ -1,0 +1,284 @@
+{
+  "emitEvent": true,
+  "fitHeight": true,
+  "apis": [
+    {
+      "method": "get",
+      "isFirstScreen": true,
+      "alias": "tabs",
+      "url": "https://data.10jqka.com.cn/basicapi/operate/businessdata/v1/tabs",
+      "params": {
+        "code": "${code}",
+        "market": "${market}",
+        "locale": "zh_CN",
+        "noWithCredentials": 1
+      },
+      "returnValExample": {
+        "tabs": [
+          { "id": "revenue", "name": "营业收入" },
+          { "id": "profit", "name": "净利润" },
+          { "id": "cashflow", "name": "现金流" }
+        ]
+      }
+    },
+    {
+      "method": "post",
+      "isFirstScreen": true,
+      "alias": "chartData",
+      "depends": ["tabs"],
+      "url": "https://data.10jqka.com.cn/basicapi/visual/smart/index/v1/visual",
+      "params": {
+        "config_id": "business_data_chart_fetcher",
+        "subjects": ["${market}-${code}"],
+        "engine": "default",
+        "strategy": "newest",
+        "source": "http_custom",
+        "extensions": {
+          "tab_id": "${tabs[0].id}"
+        }
+      },
+      "returnValExample": {
+        "chart": {
+          "data": [
+            {
+              "values": [
+                { "date": "2024-01-01", "bar": 5715620.32, "line": 9490694.01 },
+                { "date": "2023-01-01", "bar": 7414532.38, "line": 1463915.85 }
+              ]
+            }
+          ]
+        },
+        "table": {
+          "data": [
+            {
+              "name": "营业收入",
+              "children": [
+                {
+                  "name": "主营业务收入",
+                  "q1": "1234.56",
+                  "q2": "2345.67",
+                  "q3": "3456.78",
+                  "q4": "4567.89",
+                  "yoy": "12.34%"
+                },
+                {
+                  "name": "其他业务收入",
+                  "q1": "234.56",
+                  "q2": "345.67",
+                  "q3": "456.78",
+                  "q4": "567.89",
+                  "yoy": "8.56%"
+                }
+              ]
+            }
+          ],
+          "columns": [
+            { "key": "name", "label": "指标名称", "width": 180 },
+            { "key": "q1", "label": "Q1", "align": "right" },
+            { "key": "q2", "label": "Q2", "align": "right" },
+            { "key": "q3", "label": "Q3", "align": "right" },
+            { "key": "q4", "label": "Q4", "align": "right" },
+            { "key": "yoy", "label": "同比", "align": "right" }
+          ]
+        }
+      }
+    }
+  ],
+  "mockData": {
+    "tabs": [
+      { "id": "revenue", "label": "营业收入" },
+      { "id": "profit", "label": "净利润" },
+      { "id": "cashflow", "label": "现金流" }
+    ],
+    "chartData": {
+      "data": [
+        {
+          "values": [
+            { "date": "2024Q4", "bar": 5715.62, "line": 12.5 },
+            { "date": "2024Q3", "bar": 4892.33, "line": 10.8 },
+            { "date": "2024Q2", "bar": 5234.18, "line": 11.2 },
+            { "date": "2024Q1", "bar": 4567.89, "line": 9.8 },
+            { "date": "2023Q4", "bar": 5089.45, "line": 10.5 },
+            { "date": "2023Q3", "bar": 4456.78, "line": 9.2 },
+            { "date": "2023Q2", "bar": 4789.12, "line": 10.1 },
+            { "date": "2023Q1", "bar": 4123.56, "line": 8.7 }
+          ]
+        }
+      ]
+    },
+    "tableData": [
+      {
+        "name": "营业收入",
+        "q1": "4567.89",
+        "q2": "5234.18",
+        "q3": "4892.33",
+        "q4": "5715.62",
+        "yoy": "12.34%",
+        "children": [
+          {
+            "name": "主营业务收入",
+            "q1": "4234.56",
+            "q2": "4890.12",
+            "q3": "4567.89",
+            "q4": "5345.67",
+            "yoy": "11.56%"
+          },
+          {
+            "name": "其他业务收入",
+            "q1": "333.33",
+            "q2": "344.06",
+            "q3": "324.44",
+            "q4": "369.95",
+            "yoy": "15.23%"
+          }
+        ]
+      },
+      {
+        "name": "营业成本",
+        "q1": "3456.78",
+        "q2": "3987.65",
+        "q3": "3654.32",
+        "q4": "4321.09",
+        "yoy": "10.87%",
+        "children": [
+          {
+            "name": "主营业务成本",
+            "q1": "3123.45",
+            "q2": "3654.32",
+            "q3": "3321.09",
+            "q4": "3987.65",
+            "yoy": "9.87%"
+          },
+          {
+            "name": "其他业务成本",
+            "q1": "333.33",
+            "q2": "333.33",
+            "q3": "333.23",
+            "q4": "333.44",
+            "yoy": "18.76%"
+          }
+        ]
+      },
+      {
+        "name": "毛利润",
+        "q1": "1111.11",
+        "q2": "1246.53",
+        "q3": "1238.01",
+        "q4": "1394.53",
+        "yoy": "15.67%"
+      },
+      {
+        "name": "净利润",
+        "q1": "456.78",
+        "q2": "523.45",
+        "q3": "498.76",
+        "q4": "587.32",
+        "yoy": "18.45%"
+      }
+    ]
+  },
+  "chartConfig": {
+    "barLine": {
+      "view": {
+        "main": {
+          "yAxis": [
+            {
+              "type": "value",
+              "name": "金额(万元)",
+              "position": "left",
+              "boundaryGap": [0, "20%"]
+            },
+            {
+              "type": "value",
+              "name": "增长率(%)",
+              "position": "right",
+              "boundaryGap": [0, "20%"]
+            }
+          ],
+          "layers": [
+            {
+              "type": "bar",
+              "encoding": {
+                "x": "date",
+                "y": "bar"
+              },
+              "barMaxWidth": 24,
+              "itemStyle": {
+                "borderRadius": [4, 4, 0, 0]
+              }
+            },
+            {
+              "type": "line",
+              "encoding": {
+                "x": "date",
+                "y": "line"
+              },
+              "yAxisIndex": 1,
+              "smooth": true,
+              "symbol": "circle",
+              "symbolSize": 6
+            }
+          ],
+          "legend": {
+            "show": true,
+            "bottom": 0
+          },
+          "grid": {
+            "top": 40,
+            "bottom": 40,
+            "left": 10,
+            "right": 10,
+            "containLabel": true
+          }
+        }
+      }
+    },
+    "treeTable": {
+      "view": {
+        "main": {
+          "layers": [
+            {
+              "type": "treeTable",
+              "encoding": {
+                "columns": ["name", "q1", "q2", "q3", "q4", "yoy"],
+                "children": "children"
+              },
+              "columnConfig": {
+                "name": { "width": 180, "align": "left", "fixed": "left" },
+                "q1": { "width": 100, "align": "right" },
+                "q2": { "width": 100, "align": "right" },
+                "q3": { "width": 100, "align": "right" },
+                "q4": { "width": 100, "align": "right" },
+                "yoy": { "width": 100, "align": "right" }
+              },
+              "headerConfig": {
+                "name": "指标名称",
+                "q1": "Q1",
+                "q2": "Q2",
+                "q3": "Q3",
+                "q4": "Q4",
+                "yoy": "同比"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "themeColors": {
+      "light": {
+        "barColor": "#636FFF",
+        "lineColor": "#F2920D",
+        "textColor": "#2A354E",
+        "borderColor": "#EBEEF6",
+        "headerBg": "#F2F5FA"
+      },
+      "dark": {
+        "barColor": "#7B8AFF",
+        "lineColor": "#FFB347",
+        "textColor": "#C4CAD5",
+        "borderColor": "#2C375D",
+        "headerBg": "#1D273F"
+      }
+    }
+  }
+}
