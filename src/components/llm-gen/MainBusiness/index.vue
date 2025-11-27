@@ -154,6 +154,7 @@ import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick, type 
 import axios from 'axios';
 import { processUrl, processParams } from '@/common/utils/params-processor';
 import DropdownArrow from '@/components/icons/DropdownArrow.vue';
+import componentConfig from './config.json';
 
 type ChartCategory = 'industry' | 'product' | 'region';
 
@@ -218,11 +219,7 @@ interface ChartAndTablePayload {
 const props = defineProps<MainBusinessProps>();
 
 const CHART_KEYS: ChartCategory[] = ['industry', 'product', 'region'];
-const chartPanels = [
-  { key: 'industry' as ChartCategory, title: '按行业分' },
-  { key: 'product' as ChartCategory, title: '按产品分' },
-  { key: 'region' as ChartCategory, title: '按地区分' }
-];
+const chartPanels = componentConfig.mockData.chartPanels as { key: ChartCategory; title: string }[];
 
 const tabs = ref<TabItem[]>([]);
 const tabsLoading = ref(false);
@@ -242,41 +239,18 @@ const tableColumns = ref<TableColumn[]>([]);
 const tableRows = ref<TableRow[]>([]);
 const tableUnit = ref('亿');
 const isFirstChartFromProps = ref(true);
-const selectedReport = ref('2023年报');
-const reportOptions = ['2023年报', '2022年报', '2021年报'];
+const selectedReport = ref(componentConfig.mockData.reportOptions[0]);
+const reportOptions = componentConfig.mockData.reportOptions;
 const isDark = ref(false);
 
 const activeTabLabel = computed(() => tabs.value.find(item => item.id === activeTabId.value)?.label ?? '');
 
-const baseTableColumns: TableColumn[] = [
-  { key: 'businessName', label: '业务名称', valueType: 'text', align: 'left' },
-  { key: 'revenue', label: '营业收入（元）', valueType: 'amount', align: 'right' },
-  { key: 'revenueRatio', label: '收入比例', valueType: 'percent', align: 'right' },
-  { key: 'cost', label: '营业成本（元）', valueType: 'amount', align: 'right' },
-  { key: 'costRatio', label: '成本比例', valueType: 'percent', align: 'right' },
-  { key: 'profit', label: '主营利润（元）', valueType: 'amount', align: 'right' },
-  { key: 'profitRatio', label: '利润比例', valueType: 'percent', align: 'right' },
-  { key: 'grossMargin', label: '毛利率', valueType: 'percent', align: 'right' }
-];
+const baseTableColumns: TableColumn[] = componentConfig.mockData.tableColumns as TableColumn[];
 
-const mockTabs: TabItem[] = [
-  { id: 'revenue', label: '营业收入' },
-  { id: 'cost', label: '营业成本' },
-  { id: 'profit', label: '利润总额' }
-];
+const mockTabs: TabItem[] = componentConfig.mockData.tabs;
 
 // 业务名称归类规则
-const businessCategoryMap: Record<string, string> = {
-  '服务贸易及其他': '按行业',
-  '金融业务': '按行业',
-  '整车业务': '按产品',
-  '零部件业务': '按产品',
-  '服务贸易（产品）': '按产品',
-  '金融业务（产品）': '按产品',
-  '中国': '按地区',
-  '其他': '按地区',
-  '其他地区': '按地区'
-};
+const businessCategoryMap: Record<string, string> = componentConfig.mockData.businessCategoryMap;
 
 // 业务归类函数
 const getBusinessCategory = (businessName: string): string => {
@@ -295,37 +269,9 @@ const getBusinessCategory = (businessName: string): string => {
   return '按行业';
 };
 
-const baseBusinessRows = [
-  { businessName: '服务贸易及其他', revenue: 3554.64, revenueRatio: 97.12, cost: 2555.55, costRatio: 99.56, profit: 736.58, profitRatio: 82.36, grossMargin: 10.17, category: '按行业' },
-  { businessName: '金融业务', revenue: 185.23, revenueRatio: 2.48, cost: 26.36, costRatio: 0.41, profit: 158.17, profitRatio: 17.61, grossMargin: 85.45, category: '按行业' },
-  { businessName: '整车业务', revenue: 5023.36, revenueRatio: 67.56, cost: 4753.14, costRatio: 72.25, profit: 238.35, profitRatio: 32.52, grossMargin: 5.79, category: '按产品' },
-  { businessName: '零部件业务', revenue: 1828.25, revenueRatio: 25.23, cost: 1525.22, costRatio: 22.36, profit: 355.96, profitRatio: 39.64, grossMargin: 19.46, category: '按产品' },
-  { businessName: '服务贸易及其他', revenue: 373.56, revenueRatio: 5.1, cost: 232.43, costRatio: 2.43, profit: 123.35, profitRatio: 9.49, grossMargin: 19.28, category: '按产品' },
-  { businessName: '金融业务', revenue: 185.06, revenueRatio: 2.55, cost: 26.36, costRatio: 0.41, profit: 158.58, profitRatio: 17.62, grossMargin: 85.36, category: '按产品' },
-  { businessName: '中国', revenue: 373.56, revenueRatio: 5.1, cost: 288.88, costRatio: 4.4, profit: 91.36, profitRatio: 10.17, grossMargin: 23.07, category: '按地区' },
-  { businessName: '其他', revenue: 253.32, revenueRatio: 4.76, cost: 195.73, costRatio: 2.77, profit: 43.58, profitRatio: 5.73, grossMargin: 31.54, category: '按地区' }
-];
+const baseBusinessRows = componentConfig.mockData.tableRows;
 
-const pieTemplates = {
-  industry: [
-    { name: '汽车制造业', value: 59.9 },
-    { name: '整车零部件', value: 25.4 },
-    { name: '服务贸易', value: 9.2 },
-    { name: '金融业务', value: 5.5 }
-  ],
-  product: [
-    { name: '整车业务', value: 67.56 },
-    { name: '零部件业务', value: 25.23 },
-    { name: '服务贸易及其他', value: 5.1 },
-    { name: '金融业务', value: 2.55 }
-  ],
-  region: [
-    { name: '中国', value: 73.56 },
-    { name: '其他亚洲', value: 15.88 },
-    { name: '欧洲', value: 6.12 },
-    { name: '北美', value: 4.44 }
-  ]
-};
+const pieTemplates = componentConfig.mockData.pieTemplates;
 
 const getApiByAlias = (alias: string) => props.params?.apis?.find(api => api.alias === alias);
 
@@ -662,83 +608,60 @@ function scalePieValues(values: PieValue[], scale: number) {
   }));
 }
 
-// 修改：createPieChartConfig 改为支持动态数据
+// 修改：createPieChartConfig 改为支持动态数据，使用配置文件中的图表配置
 function createPieChartConfig(centerTitle: string, values: PieValue[], centerValue?: string): ChartRenderPayload {
-  // 计算总值用于显示在中间（如果未提供 centerValue）
-  const total = values.reduce((sum, item) => sum + item.value, 0).toFixed(2);
-
-  const titleColor = isDark.value ? '#C4CAD5' : 'rgba(0,0,0,0.6)';
-  const subtitleColor = isDark.value ? '#A9B2BE' : '#6B7280';
+  const { pie, themeColors } = componentConfig.chartConfig;
+  const colors = isDark.value ? themeColors.dark : themeColors.light;
 
   return {
-    data: [
-      {
-        values
-      }
-    ],
+    data: [{ values }],
     view: {
       main: {
         title: [
           {
             text: `{mainTitle|${centerTitle}}`,
-            left: 'center',
-            top: 'center',
+            left: pie.view.main.title[0].left,
+            top: pie.view.main.title[0].top,
             textStyle: {
-              fontSize: 12,
-              color: subtitleColor,
-              lineHeight: 18,
+              fontSize: pie.view.main.title[0].textStyle.fontSize,
+              color: colors.subtitleColor,
+              lineHeight: pie.view.main.title[0].textStyle.lineHeight,
               rich: {
-                mainTitle: { fontSize: 12, color: titleColor, lineHeight: 16, fontWeight: 600 },
+                mainTitle: {
+                  fontSize: pie.view.main.title[0].textStyle.rich.mainTitle.fontSize,
+                  color: colors.titleColor,
+                  lineHeight: pie.view.main.title[0].textStyle.rich.mainTitle.lineHeight,
+                  fontWeight: pie.view.main.title[0].textStyle.rich.mainTitle.fontWeight
+                }
               }
             }
           }
         ],
-        layers: [
-          {
-            type: 'pie',
-            radius: ['45%', '72%'],
-            encoding: {
-              x: 'name',
-              y: 'value',
-              color: 'name'
-            },
-            label: {
-              formatter: '{b} {d}%',
-              show: false
-            },
-            emphasis: {
-              scale: true
-            }
-          }
-        ]
+        layers: pie.view.main.layers
       }
     },
     token: {
       dvStandardChart: {
         baseOption: {
           legend: {
-            textStyle: {
-              color: isDark.value ? '#C4CAD5' : '#545E71'
-            },
-            backgroundColor: 'transparent',
-            dvPagination: {
-              color: isDark.value ? '#C4CAD5' : '#545E71',
-            },
+            textStyle: { color: colors.legendColor },
+            backgroundColor: pie.token.dvStandardChart.baseOption.legend.backgroundColor,
+            dvPagination: { color: colors.legendColor }
           },
-          tooltip: {
-            show: false,
-          }
-        },
-      },
+          tooltip: pie.token.dvStandardChart.baseOption.tooltip
+        }
+      }
     }
-  }
+  };
 }
 
-const mockChartDataset: Record<string, ChartAndTablePayload> = {
-  revenue: createMockPayload('营收', 3723.65, 1),
-  cost: createMockPayload('成本', 2488.15, 0.76),
-  profit: createMockPayload('利润', 982.43, 0.52)
-};
+// 根据配置生成 mockChartDataset
+const mockChartDataset: Record<string, ChartAndTablePayload> = Object.fromEntries(
+  Object.entries(componentConfig.mockData.mockDatasetScales).map(([key, config]) => [
+    key,
+    createMockPayload(config.centerTitle, config.total, config.scale)
+  ])
+);
 
 const resetState = () => {
   tabs.value = [];

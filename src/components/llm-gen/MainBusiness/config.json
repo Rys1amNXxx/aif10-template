@@ -71,5 +71,263 @@
         }
       }
     }
-  ]
+  ],
+  "mockData": {
+    "tabs": [
+      { "id": "revenue", "label": "营业收入" },
+      { "id": "cost", "label": "营业成本" },
+      { "id": "profit", "label": "利润总额" }
+    ],
+    "reportOptions": ["2023年报", "2022年报", "2021年报"],
+    "chartPanels": [
+      { "key": "industry", "title": "按行业分" },
+      { "key": "product", "title": "按产品分" },
+      { "key": "region", "title": "按地区分" }
+    ],
+    "tableColumns": [
+      {
+        "key": "businessName",
+        "label": "业务名称",
+        "valueType": "text",
+        "align": "left"
+      },
+      {
+        "key": "revenue",
+        "label": "营业收入（元）",
+        "valueType": "amount",
+        "align": "right"
+      },
+      {
+        "key": "revenueRatio",
+        "label": "收入比例",
+        "valueType": "percent",
+        "align": "right"
+      },
+      {
+        "key": "cost",
+        "label": "营业成本（元）",
+        "valueType": "amount",
+        "align": "right"
+      },
+      {
+        "key": "costRatio",
+        "label": "成本比例",
+        "valueType": "percent",
+        "align": "right"
+      },
+      {
+        "key": "profit",
+        "label": "主营利润（元）",
+        "valueType": "amount",
+        "align": "right"
+      },
+      {
+        "key": "profitRatio",
+        "label": "利润比例",
+        "valueType": "percent",
+        "align": "right"
+      },
+      {
+        "key": "grossMargin",
+        "label": "毛利率",
+        "valueType": "percent",
+        "align": "right"
+      }
+    ],
+    "tableRows": [
+      {
+        "businessName": "服务贸易及其他",
+        "revenue": 3554.64,
+        "revenueRatio": 97.12,
+        "cost": 2555.55,
+        "costRatio": 99.56,
+        "profit": 736.58,
+        "profitRatio": 82.36,
+        "grossMargin": 10.17,
+        "category": "按行业"
+      },
+      {
+        "businessName": "金融业务",
+        "revenue": 185.23,
+        "revenueRatio": 2.48,
+        "cost": 26.36,
+        "costRatio": 0.41,
+        "profit": 158.17,
+        "profitRatio": 17.61,
+        "grossMargin": 85.45,
+        "category": "按行业"
+      },
+      {
+        "businessName": "整车业务",
+        "revenue": 5023.36,
+        "revenueRatio": 67.56,
+        "cost": 4753.14,
+        "costRatio": 72.25,
+        "profit": 238.35,
+        "profitRatio": 32.52,
+        "grossMargin": 5.79,
+        "category": "按产品"
+      },
+      {
+        "businessName": "零部件业务",
+        "revenue": 1828.25,
+        "revenueRatio": 25.23,
+        "cost": 1525.22,
+        "costRatio": 22.36,
+        "profit": 355.96,
+        "profitRatio": 39.64,
+        "grossMargin": 19.46,
+        "category": "按产品"
+      },
+      {
+        "businessName": "服务贸易及其他",
+        "revenue": 373.56,
+        "revenueRatio": 5.1,
+        "cost": 232.43,
+        "costRatio": 2.43,
+        "profit": 123.35,
+        "profitRatio": 9.49,
+        "grossMargin": 19.28,
+        "category": "按产品"
+      },
+      {
+        "businessName": "金融业务",
+        "revenue": 185.06,
+        "revenueRatio": 2.55,
+        "cost": 26.36,
+        "costRatio": 0.41,
+        "profit": 158.58,
+        "profitRatio": 17.62,
+        "grossMargin": 85.36,
+        "category": "按产品"
+      },
+      {
+        "businessName": "中国",
+        "revenue": 373.56,
+        "revenueRatio": 5.1,
+        "cost": 288.88,
+        "costRatio": 4.4,
+        "profit": 91.36,
+        "profitRatio": 10.17,
+        "grossMargin": 23.07,
+        "category": "按地区"
+      },
+      {
+        "businessName": "其他",
+        "revenue": 253.32,
+        "revenueRatio": 4.76,
+        "cost": 195.73,
+        "costRatio": 2.77,
+        "profit": 43.58,
+        "profitRatio": 5.73,
+        "grossMargin": 31.54,
+        "category": "按地区"
+      }
+    ],
+    "tableUnit": "亿",
+    "pieTemplates": {
+      "industry": [
+        { "name": "汽车制造业", "value": 59.9 },
+        { "name": "整车零部件", "value": 25.4 },
+        { "name": "服务贸易", "value": 9.2 },
+        { "name": "金融业务", "value": 5.5 }
+      ],
+      "product": [
+        { "name": "整车业务", "value": 67.56 },
+        { "name": "零部件业务", "value": 25.23 },
+        { "name": "服务贸易及其他", "value": 5.1 },
+        { "name": "金融业务", "value": 2.55 }
+      ],
+      "region": [
+        { "name": "中国", "value": 73.56 },
+        { "name": "其他亚洲", "value": 15.88 },
+        { "name": "欧洲", "value": 6.12 },
+        { "name": "北美", "value": 4.44 }
+      ]
+    },
+    "businessCategoryMap": {
+      "服务贸易及其他": "按行业",
+      "金融业务": "按行业",
+      "整车业务": "按产品",
+      "零部件业务": "按产品",
+      "服务贸易（产品）": "按产品",
+      "金融业务（产品）": "按产品",
+      "中国": "按地区",
+      "其他": "按地区",
+      "其他地区": "按地区"
+    },
+    "mockDatasetScales": {
+      "revenue": { "centerTitle": "营收", "total": 3723.65, "scale": 1 },
+      "cost": { "centerTitle": "成本", "total": 2488.15, "scale": 0.76 },
+      "profit": { "centerTitle": "利润", "total": 982.43, "scale": 0.52 }
+    }
+  },
+  "chartConfig": {
+    "pie": {
+      "view": {
+        "main": {
+          "title": [
+            {
+              "text": "{mainTitle|${centerTitle}}",
+              "left": "center",
+              "top": "center",
+              "textStyle": {
+                "fontSize": 12,
+                "lineHeight": 18,
+                "rich": {
+                  "mainTitle": {
+                    "fontSize": 12,
+                    "lineHeight": 16,
+                    "fontWeight": 600
+                  }
+                }
+              }
+            }
+          ],
+          "layers": [
+            {
+              "type": "pie",
+              "radius": ["45%", "72%"],
+              "encoding": {
+                "x": "name",
+                "y": "value",
+                "color": "name"
+              },
+              "label": {
+                "formatter": "{b} {d}%",
+                "show": false
+              },
+              "emphasis": {
+                "scale": true
+              }
+            }
+          ]
+        }
+      },
+      "token": {
+        "dvStandardChart": {
+          "baseOption": {
+            "legend": {
+              "backgroundColor": "transparent"
+            },
+            "tooltip": {
+              "show": false
+            }
+          }
+        }
+      }
+    },
+    "themeColors": {
+      "light": {
+        "titleColor": "rgba(0,0,0,0.6)",
+        "subtitleColor": "#6B7280",
+        "legendColor": "#545E71"
+      },
+      "dark": {
+        "titleColor": "#C4CAD5",
+        "subtitleColor": "#A9B2BE",
+        "legendColor": "#C4CAD5"
+      }
+    }
+  }
 }
