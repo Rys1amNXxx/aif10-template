@@ -14,6 +14,12 @@ importers:
       '@antv/g6':
         specifier: ^5.0.50
         version: 5.0.50(workerize-loader@2.0.2(webpack@5.102.1))
+      '@ths-m/HXKline':
+        specifier: ^1.2.12
+        version: 1.2.12
+      '@ths-m/HXKlineChart':
+        specifier: ^2.1.10
+        version: 2.1.10
       '@vueuse/core':
         specifier: ^9.1.0
         version: 9.13.0(vue@3.5.24(typescript@5.4.5))
@@ -555,6 +561,14 @@ packages:
 
   '@sxzz/popperjs-es@2.11.7':
     resolution: {integrity: sha512-Ccy0NlLkzr0Ex2FKvh2X+OyERHXJ88XJ1MXtsI9y9fGexlaXaVTPzBCRBwIxFkORuOb+uBqeu+RqnpgYTEZRUQ==}
+
+  '@ths-m/HXKline@1.2.12':
+    resolution: {integrity: sha512-g0CgSD99ppZjRG0W8pCOGQpzPQ/bLmqcnwCFM7ZBB+ky+1ksOX7wzogn2xVuwmhynkBkTnYIVWqVUl0OwOTpTA==}
+    engines: {node: '>=16.0.0'}
+
+  '@ths-m/HXKlineChart@2.1.10':
+    resolution: {integrity: sha512-FZi2Qz883PlePbl+EjW9bvdGLEUQ/ZkAqsto9VKWOLFdxo7eP5pF+sO2W4HpYnR1fXMg8N1pwuNAQBozKqEMTg==}
+    engines: {node: '>=12.0.0'}
 
   '@tsconfig/node20@20.1.6':
     resolution: {integrity: sha512-sz+Hqx9zwZDpZIV871WSbUzSqNIsXzghZydypnfgzPKLltVJfkINfUeTct31n/tTSa9ZE1ZOfKdRre1uHHquYQ==}
@@ -2882,6 +2896,10 @@ snapshots:
   '@rushstack/eslint-patch@1.14.1': {}
 
   '@sxzz/popperjs-es@2.11.7': {}
+
+  '@ths-m/HXKline@1.2.12': {}
+
+  '@ths-m/HXKlineChart@2.1.10': {}
 
   '@tsconfig/node20@20.1.6': {}
 

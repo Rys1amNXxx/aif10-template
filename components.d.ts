@@ -22,6 +22,7 @@ declare module 'vue' {
     GenModule: typeof import('./src/components/llm-gen/GenModule/index.vue')['default']
     Holder: typeof import('./src/components/llm-gen/Holder/index.vue')['default']
     InteractiveTable: typeof import('./src/components/llm-gen/MainBusiness/InteractiveTable.vue')['default']
+    KlineDemo: typeof import('./src/components/llm-gen/KlineDemo/index.vue')['default']
     MainBusiness: typeof import('./src/components/llm-gen/MainBusiness/index.vue')['default']
     MainBussiness: typeof import('./src/components/llm-gen/MainBussiness/index.vue')['default']
     Reset: typeof import('./src/components/icons/Reset.vue')['default']

@@ -5,41 +5,59 @@
     {
       "method": "post",
       "isFirstScreen": true,
-      "alias": "composition",
-      "url": "https://data.10jqka.com.cn/basicapi/visual/smart/index/v1/visual",
+      "alias": "reportOptions",
+      "url": "https://data.10jqka.com.cn/basicapi/visual/smart/dev/index/v1/fetch",
       "params": {
-        "config_id": "main_business_composition_fetcher",
-        "subjects": ["${market}-${code}"],
-        "engine": "default",
+        "config_id": "main_business_fetcher_config",
+        "business_id": "configurable_fetcher",
+        "subjects": ["17-600019"],
         "strategy": "newest",
-        "source": "http_custom"
+        "engine": "default",
+        "source": "graal_js",
+        "extensions": {
+          "format": "original"
+        }
       },
       "returnValExample": {
-        "table": {
-          "columns": [
-            { "key": "businessName", "label": "业务名称" },
-            { "key": "revenue", "label": "营业收入（元）" },
-            { "key": "revenueRatio", "label": "收入比例" },
-            { "key": "cost", "label": "营业成本（元）" },
-            { "key": "costRatio", "label": "成本比例" },
-            { "key": "profit", "label": "主营利润（元）" },
-            { "key": "profitRatio", "label": "利润比例" },
-            { "key": "grossMargin", "label": "毛利率" }
-          ],
+        "data": {
           "rows": [
+            { "stock_name": "宝钢股份", "year": "2025三季报", "stock_code": "600019" }
+          ]
+        }
+      }
+    },
+    {
+      "method": "post",
+      "isFirstScreen": true,
+      "alias": "composition",
+      "depends": ["reportOptions"],
+      "url": "https://data.10jqka.com.cn/basicapi/visual/smart/dev/index/v1/visual",
+      "params": {
+        "business_id": "configurable_fetcher",
+        "config_id": "main_business_structure_test_fetcher_config",
+        "subjects": ["17-600019"],
+        "strategy": "newest",
+        "engine": "default",
+        "source": "http_custom",
+        "extensions": {
+          "analysisTypes": "industry,product,area",
+          "specialDate": ""
+        }
+      },
+      "returnValExample": {
+        "data": {
+          "data": [
             {
-              "businessName": "整车业务",
-              "revenue": 5023.36,
-              "revenueRatio": 67.56,
-              "cost": 4753.14,
-              "costRatio": 72.25,
-              "profit": 238.35,
-              "profitRatio": 32.52,
-              "grossMargin": 5.79,
-              "category": "按产品"
+              "业务维度": "area",
+              "业务名称": "来源于境内的对外交易收入",
+              "营业收入": "140275263000.00",
+              "营业收入占比": "0.85926079",
+              "营业利润": null,
+              "营业利润占比": null,
+              "毛利率": null,
+              "毛利率占比": null
             }
-          ],
-          "unit": "亿"
+          ]
         }
       }
     }

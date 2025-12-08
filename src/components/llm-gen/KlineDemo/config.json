@@ -1,0 +1,38 @@
+{
+  "emitEvent": true,
+  "fitHeight": true,
+  "name": "KlineDemo",
+  "description": "股票K线图组件，支持回购事件标注",
+  "props": {
+    "stockCode": {
+      "type": "string",
+      "default": "300033",
+      "description": "股票代码"
+    },
+    "stockMarket": {
+      "type": "string",
+      "default": "33",
+      "description": "市场代码"
+    },
+    "title": {
+      "type": "string",
+      "default": "",
+      "description": "图表标题"
+    },
+    "annotations": {
+      "type": "array",
+      "default": [],
+      "description": "事件标注数据"
+    },
+    "regions": {
+      "type": "array",
+      "default": [],
+      "description": "区域标记数据"
+    },
+    "showDataZoom": {
+      "type": "boolean",
+      "default": true,
+      "description": "是否显示数据缩放控件"
+    }
+  }
+}
