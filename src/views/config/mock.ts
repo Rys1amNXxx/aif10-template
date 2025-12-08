@@ -51,7 +51,7 @@ export const mockData = {
     "pid": null,
     "index": -1,
     "value": null,
-    "title": "回购开始",
+    "title": "演示模块",
     "subtitle": null,
     "type": null,
     "visual_index": -1,
