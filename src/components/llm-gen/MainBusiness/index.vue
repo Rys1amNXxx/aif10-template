@@ -257,7 +257,7 @@ interface ChartAndTablePayload {
 const props = defineProps<MainBusinessProps>();
 
 const CHART_KEYS: ChartCategory[] = ['industry', 'product', 'region'];
-const chartPanels = componentConfig.mockData.chartPanels as { key: ChartCategory; title: string }[];
+const chartPanels = componentConfig.staticConfig.chartPanels as { key: ChartCategory; title: string }[];
 
 // 固定的tabs配置，不再从外部获取
 const FIXED_TABS: TabItem[] = [
@@ -329,10 +329,10 @@ const selectedCell = ref<{ row: number; col: number } | null>(null);
 
 const activeTabLabel = computed(() => tabs.value.find(item => item.id === activeTabId.value)?.label ?? '');
 
-const baseTableColumns: TableColumn[] = componentConfig.mockData.tableColumns as TableColumn[];
+const baseTableColumns: TableColumn[] = componentConfig.staticConfig.tableColumns as TableColumn[];
 
 // 业务名称归类规则
-const businessCategoryMap: Record<string, string> = componentConfig.mockData.businessCategoryMap;
+const businessCategoryMap: Record<string, string> = componentConfig.staticConfig.businessCategoryMap;
 
 // 业务归类函数
 const getBusinessCategory = (businessName: string): string => {
@@ -350,10 +350,6 @@ const getBusinessCategory = (businessName: string): string => {
   }
   return '按行业';
 };
-
-const baseBusinessRows = componentConfig.mockData.tableRows;
-
-const pieTemplates = componentConfig.mockData.pieTemplates;
 
 const getApiByAlias = (alias: string) => props.params?.apis?.find(api => api.alias === alias);
 
@@ -578,7 +574,13 @@ const renderCharts = () => {
 const renderChartByKey = (key: ChartCategory) => {
   const dom = chartRefs[key].value;
   const config = chartConfigs[key];
-  if (!dom || !config) return;
+
+  // 如果没有配置，清空 DOM 内容（防止旧图表滞留）
+  if (!dom) return;
+  if (!config) {
+    dom.innerHTML = '';
+    return;
+  }
   if (!window?.AIGCDataVis?.render) return;
 
   const renderParams = {
@@ -853,7 +855,7 @@ const getBusinessNameCellClass = (rowIndex: number) => {
   // 行选中（点击业务名称时整行高亮）
   if (selectedRowIndex.value === rowIndex) {
     classes.push('row-selected');
-    classes.push('row-selected-first-col'); // 添加左边框
+    classes.push('row-selected-first-col');
   }
 
   // 单元格选中时的行标题指示（右边框变色）
@@ -917,48 +919,7 @@ const getRowClass = (rowIndex: number) => {
   return classes.join(' ');
 };
 
-function createMockPayload(centerTitle: string, total: number, scale: number): ChartAndTablePayload {
-  const pieValues = getMockPieValues(scale);
-  return {
-    charts: {
-      industry: createPieChartConfig('按行业分', pieValues.industry, `${total.toFixed(2)}亿`),
-      product: createPieChartConfig('按产品分', pieValues.product, `${total.toFixed(2)}亿`),
-      region: createPieChartConfig('按地区分', pieValues.region, `${total.toFixed(2)}亿`)
-    },
-    table: {
-      columns: baseTableColumns,
-      rows: createTableRows(scale),
-      unit: '亿'
-    }
-  };
-}
-
-function createTableRows(scale: number): TableRow[] {
-  return baseBusinessRows.map(row => ({
-    ...row,
-    revenue: +(row.revenue * scale).toFixed(2),
-    cost: +(row.cost * scale).toFixed(2),
-    profit: +(row.profit * scale).toFixed(2),
-    category: row.category || getBusinessCategory(String(row.businessName || ''))
-  }));
-}
-
-function getMockPieValues(scale: number) {
-  return {
-    industry: scalePieValues(pieTemplates.industry, scale),
-    product: scalePieValues(pieTemplates.product, scale),
-    region: scalePieValues(pieTemplates.region, scale)
-  };
-}
-
-function scalePieValues(values: PieValue[], scale: number) {
-  return values.map(item => ({
-    ...item,
-    value: +(item.value * scale).toFixed(2)
-  }));
-}
-
-// 修改：createPieChartConfig 改为支持动态数据，使用配置文件中的图表配置
+// 创建饼图配置
 function createPieChartConfig(centerTitle: string, values: PieValue[], centerValue?: string): ChartRenderPayload {
   const { pie, themeColors } = componentConfig.chartConfig;
   const colors = isDark.value ? themeColors.dark : themeColors.light;
@@ -1005,14 +966,6 @@ function createPieChartConfig(centerTitle: string, values: PieValue[], centerVal
   };
 }
 
-// 根据配置生成 mockChartDataset
-const mockChartDataset: Record<string, ChartAndTablePayload> = Object.fromEntries(
-  Object.entries(componentConfig.mockData.mockDatasetScales).map(([key, config]) => [
-    key,
-    createMockPayload(config.centerTitle, config.total, config.scale)
-  ])
-);
-
 const resetState = () => {
   tabs.value = FIXED_TABS;
   activeTabId.value = 'revenue';
@@ -1029,9 +982,9 @@ const resetState = () => {
 const fetchReportOptions = async () => {
   const api = getApiByAlias('reportOptions');
   if (!api) {
-    // 使用 mock 数据
-    reportOptions.value = componentConfig.mockData.reportOptions;
-    selectedReport.value = reportOptions.value[0] || '';
+    // 没有 API 配置，无法获取数据
+    reportOptions.value = [];
+    selectedReport.value = '';
     return;
   }
 
@@ -1049,13 +1002,14 @@ const fetchReportOptions = async () => {
     const rows = response.data?.data?.rows ?? [];
     // 从 rows 中提取 year 字段作为下拉选项
     const options = rows.map((row: any) => row.year).filter(Boolean);
-    reportOptions.value = options.length > 0 ? options : componentConfig.mockData.reportOptions;
+    reportOptions.value = options;
     // 默认选中第一个（最新的）
     selectedReport.value = reportOptions.value[0] || '';
   } catch (error) {
     console.error('获取报告期选项失败:', error);
-    reportOptions.value = componentConfig.mockData.reportOptions;
-    selectedReport.value = reportOptions.value[0] || '';
+    // 请求失败时清空数据
+    reportOptions.value = [];
+    selectedReport.value = '';
   } finally {
     reportOptionsLoading.value = false;
   }
