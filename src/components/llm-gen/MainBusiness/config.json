@@ -179,7 +179,7 @@
               "backgroundColor": "transparent"
             },
             "tooltip": {
-              "show": false
+              "show": true
             }
           }
         }

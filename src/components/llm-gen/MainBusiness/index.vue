@@ -547,7 +547,7 @@ const aggregatePieDataFromTable = (rows: TableRow[], categoryKey: ChartCategory,
 
   return filteredRows.map(row => ({
     name: String(row.businessName || ''),
-    value: Number(row[ratioKey] || 0)
+    value: Math.abs(Number(row[ratioKey] || 0))  // 使用绝对值
   })).filter(item => item.value > 0);
 };
 
@@ -629,14 +629,13 @@ const formatPercent = (value: string | number | null | undefined) => {
   if (typeof value === 'string') {
     const numValue = parseFloat(value);
     if (!isNaN(numValue)) {
-      // API 返回的是小数形式（如 0.85），需要转换为百分比
+      // API 返回的是小数形式（如 0.85 代表 85%，1.01 代表 101%），统一乘以100
       return `${(numValue * 100).toFixed(2)}%`;
     }
     return value.includes('%') ? value : `${value}%`;
   }
-  // 如果值小于1，认为是小数形式，需要乘以100
-  const displayValue = value < 1 ? value * 100 : value;
-  return `${displayValue.toFixed(2)}%`;
+  // API 返回的都是小数形式，统一乘以100转换为百分比
+  return `${(value * 100).toFixed(2)}%`;
 };
 
 const cellAlignClass = (align: TableColumn['align']) => {
