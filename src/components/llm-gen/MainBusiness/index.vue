@@ -358,9 +358,7 @@ const pickExternalChartPayload = (tabId: string): ChartAndTablePayload | undefin
   return undefined;
 };
 
-// 初始化时获取表格数据（只在首次加载时调用）
 const fetchTableData = async () => {
-  // 优先从 props 获取数据
   if (isFirstChartFromProps.value) {
     const externalPayload = pickExternalChartPayload('revenue');
     if (externalPayload) {
@@ -385,7 +383,6 @@ const fetchTableData = async () => {
     const url = processUrl(api.url);
     const params = processParams(api.params || {});
 
-    // 注入当前选中的报告期日期
     if (selectedReport.value) {
       const specialDate = convertReportToApiDate(selectedReport.value);
       if (params.extensions) {
@@ -516,10 +513,13 @@ const aggregatePieDataFromTable = (rows: TableRow[], categoryKey: ChartCategory,
   };
   const ratioKey = ratioKeyMap[tabId] || 'revenueRatio';
 
-  return filteredRows.map(row => ({
-    name: String(row.businessName || ''),
-    value: Math.abs(Number(row[ratioKey] || 0))
-  })).filter(item => item.value > 0);
+  return filteredRows.map(row => {
+    const originalValue = Number(row[ratioKey] || 0);
+    return {
+      name: String(row.businessName || ''),
+      value: Math.abs(originalValue * 100)
+    };
+  }).filter(item => item.value > 0);
 };
 
 const renderCharts = () => {
@@ -586,21 +586,17 @@ const formatPercent = (value: string | number | null | undefined) => {
   if (typeof value === 'string') {
     const numValue = parseFloat(value);
     if (!isNaN(numValue)) {
-      // API 返回的是小数形式（如 0.85 代表 85%，1.01 代表 101%），统一乘以100
       return `${(numValue * 100).toFixed(2)}%`;
     }
     return value.includes('%') ? value : `${value}%`;
   }
-  // API 返回的都是小数形式，统一乘以100转换为百分比
   return `${(value * 100).toFixed(2)}%`;
 };
 
 const handleReportChange = (report: string) => {
   selectedReport.value = report;
-  // watch(selectedReport) 会自动触发 fetchTableData
 };
 
-// 判断是否显示分类单元格（只在该分类的第一行显示）
 const shouldShowCategoryCell = (rowIndex: number): boolean => {
   if (rowIndex === 0) return true;
   return tableRows.value[rowIndex].category !== tableRows.value[rowIndex - 1].category;
@@ -893,24 +889,21 @@ const fetchReportOptions = async () => {
 
 const bootstrap = async () => {
   initTabs();
-  await fetchReportOptions();  // 只获取下拉选项，表格数据通过 watch selectedReport 触发
+  await fetchReportOptions();
 };
 
 let observer: number | null = null;
 
 onMounted(() => {
   bootstrap();
-  // 初始化暗黑模式状态
   isDark.value = localStorage.getItem('vueuse-color-scheme') === 'dark';
 
-  // 监听 localStorage 变化 (用于跨标签页或 storage 事件)
   window.addEventListener('storage', (e) => {
     if (e.key === 'vueuse-color-scheme') {
       isDark.value = e.newValue === 'dark';
     }
   });
 
-  // 轮询检查 localStorage (兼容同一页面内非 storage 事件触发的变更)
   observer = window.setInterval(() => {
     const currentTheme = localStorage.getItem('vueuse-color-scheme');
     if ((currentTheme === 'dark') !== isDark.value) {
