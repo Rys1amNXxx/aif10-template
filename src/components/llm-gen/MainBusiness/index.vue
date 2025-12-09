@@ -122,12 +122,11 @@
                        bg-background-03 text-text-03 black:bg-background-03-dark black:text-text-03-dark align-middle">
                 {{ row.category }}
               </td>
-              <!-- 业务名称（点击选中整行） -->
+              <!-- 业务名称（仅悬浮效果） -->
               <td
                 class="min-w-[140px] px-3 py-2 border border-[#EBEEF6] black:border-border-08-dark text-center
-                         bg-background-03 text-text-03 black:bg-background-03-dark black:text-text-03-dark cursor-pointer transition-colors"
-                :class="getBusinessNameCellClass(rowIndex)" @mouseenter="hoverRowIndex = rowIndex"
-                @click="handleBusinessNameClick(rowIndex)">
+                         bg-background-03 text-text-03 black:bg-background-03-dark black:text-text-03-dark transition-colors"
+                :class="getBusinessNameCellClass(rowIndex)" @mouseenter="hoverRowIndex = rowIndex">
                 {{ row.businessName }}
               </td>
               <!-- 数据列 -->
@@ -327,29 +326,7 @@ const selectedColIndex = ref<number | null>(null);
 const selectedRowIndex = ref<number | null>(null);
 const selectedCell = ref<{ row: number; col: number } | null>(null);
 
-const activeTabLabel = computed(() => tabs.value.find(item => item.id === activeTabId.value)?.label ?? '');
-
 const baseTableColumns: TableColumn[] = componentConfig.staticConfig.tableColumns as TableColumn[];
-
-// 业务名称归类规则
-const businessCategoryMap: Record<string, string> = componentConfig.staticConfig.businessCategoryMap;
-
-// 业务归类函数
-const getBusinessCategory = (businessName: string): string => {
-  // 优先使用映射表
-  if (businessCategoryMap[businessName]) {
-    return businessCategoryMap[businessName];
-  }
-
-  // 根据关键词判断
-  if (businessName.includes('（产品）') || businessName.includes('业务')) {
-    return '按产品';
-  }
-  if (businessName.includes('地区') || businessName.includes('国') || /^[A-Z]{2,}$/.test(businessName)) {
-    return '按地区';
-  }
-  return '按行业';
-};
 
 const getApiByAlias = (alias: string) => props.params?.apis?.find(api => api.alias === alias);
 
@@ -514,12 +491,6 @@ const updatePieChartsForTab = (tabId: string) => {
   renderCharts();
 };
 
-// 兼容旧的调用方式（首次加载时同时设置表格和饼图）
-const applyChartPayload = (payload: ChartAndTablePayload | undefined, tabKey: string) => {
-  applyTableData(payload);
-  updatePieChartsForTab(tabKey);
-};
-
 // 从表格数据聚合饼图数据的函数
 const aggregatePieDataFromTable = (rows: TableRow[], categoryKey: ChartCategory, tabId: string): PieValue[] => {
   // 映射表：将表格的 category 字段映射到对应的图表 key
@@ -547,22 +518,8 @@ const aggregatePieDataFromTable = (rows: TableRow[], categoryKey: ChartCategory,
 
   return filteredRows.map(row => ({
     name: String(row.businessName || ''),
-    value: Math.abs(Number(row[ratioKey] || 0))  // 使用绝对值
+    value: Math.abs(Number(row[ratioKey] || 0))
   })).filter(item => item.value > 0);
-};
-
-const normalizeChartConfig = (config: any): ChartRenderPayload | null => {
-  if (!config) return null;
-  if (config.renderConfig) {
-    return {
-      ...config.renderConfig,
-      data: config.renderConfig.data ?? config.data ?? []
-    };
-  }
-  return {
-    ...config,
-    data: config.data ?? []
-  };
 };
 
 const renderCharts = () => {
@@ -638,12 +595,6 @@ const formatPercent = (value: string | number | null | undefined) => {
   return `${(value * 100).toFixed(2)}%`;
 };
 
-const cellAlignClass = (align: TableColumn['align']) => {
-  if (align === 'right') return 'text-right';
-  if (align === 'center') return 'text-center';
-  return 'text-left';
-};
-
 const handleReportChange = (report: string) => {
   selectedReport.value = report;
   // watch(selectedReport) 会自动触发 fetchTableData
@@ -712,36 +663,6 @@ const handleHeaderClick = (headerIndex: number) => {
   selectedRowIndex.value = null;
 };
 
-// 处理行标题（分类列）悬停
-const handleRowHeaderHover = (rowIndex: number) => {
-  hoverRowIndex.value = rowIndex;
-  hoverColIndex.value = null;
-};
-
-// 处理行标题（分类列）点击
-const handleRowHeaderClick = (rowIndex: number) => {
-  if (selectedRowIndex.value === rowIndex) {
-    selectedRowIndex.value = null;
-  } else {
-    selectedRowIndex.value = rowIndex;
-  }
-  // 清除列和单元格选中
-  selectedColIndex.value = null;
-  selectedCell.value = null;
-};
-
-// 处理业务名称单元格点击（选中整行）
-const handleBusinessNameClick = (rowIndex: number) => {
-  if (selectedRowIndex.value === rowIndex) {
-    selectedRowIndex.value = null;
-  } else {
-    selectedRowIndex.value = rowIndex;
-  }
-  // 清除列和单元格选中
-  selectedColIndex.value = null;
-  selectedCell.value = null;
-};
-
 // 处理数据单元格悬停
 const handleCellHover = (rowIndex: number, colIndex: number) => {
   hoverRowIndex.value = rowIndex;
@@ -804,57 +725,13 @@ const getHeaderCellClass = (headerIndex: number) => {
   return classes.join(' ');
 };
 
-// 获取行标题（分类列 / 业务名称列）的样式类
-const getRowHeaderClass = (rowIndex: number, isCategory: boolean = false) => {
-  const classes: string[] = [];
-
-  // 行悬停
-  if (hoverRowIndex.value === rowIndex) {
-    classes.push('row-hover');
-  }
-
-  // 列悬停（分类列 colIndex=0，业务名称列 colIndex=1）
-  const colIndex = isCategory ? 0 : 1;
-  if (isColInHoverRange(colIndex)) {
-    classes.push('col-hover');
-  }
-
-  // 行选中
-  if (selectedRowIndex.value === rowIndex) {
-    classes.push('row-selected');
-    if (isCategory) {
-      classes.push('row-selected-first-col');
-    }
-  }
-
-  // 列选中
-  if (isColInSelectedRange(colIndex)) {
-    classes.push('col-selected');
-    if (rowIndex === 0) classes.push('col-selected-first');
-    if (rowIndex === tableRows.value.length - 1) classes.push('col-selected-last');
-  }
-
-  // 单元格选中时的行标题指示（右边框变色）
-  if (selectedCell.value !== null && selectedCell.value.row === rowIndex) {
-    classes.push('cell-indicator-row');
-  }
-
-  return classes.join(' ');
-};
-
-// 获取业务名称单元格的样式类（点击选中整行）
+// 获取业务名称单元格的样式类（仅悬浮效果）
 const getBusinessNameCellClass = (rowIndex: number) => {
   const classes: string[] = [];
 
   // 行悬停
   if (hoverRowIndex.value === rowIndex) {
     classes.push('row-hover');
-  }
-
-  // 行选中（点击业务名称时整行高亮）
-  if (selectedRowIndex.value === rowIndex) {
-    classes.push('row-selected');
-    classes.push('row-selected-first-col');
   }
 
   // 单元格选中时的行标题指示（右边框变色）
