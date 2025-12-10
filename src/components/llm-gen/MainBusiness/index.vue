@@ -222,7 +222,7 @@ interface TabItem {
 
 interface PieValue {
   name: string;
-  value: number;
+  [key: string]: string | number;
 }
 
 interface ChartRenderPayload {
@@ -466,17 +466,28 @@ const applyTableData = (payload: ChartAndTablePayload | undefined) => {
   }
 };
 
+// Tab 对应的 tooltip 标签映射
+const tabToTooltipLabelMap: Record<string, string> = {
+  revenue: '收入比例',
+  cost: '成本比例',
+  profit: '利润比例'
+};
+
 // 根据当前选中的 tab 更新饼图（不影响表格数据）
 const updatePieChartsForTab = (tabId: string) => {
+  const valueKey = tabToTooltipLabelMap[tabId] || '比例';
+
   CHART_KEYS.forEach(key => {
     // 根据表格数据和当前 tab 动态生成饼图数据
-    const aggregatedData = aggregatePieDataFromTable(tableRows.value, key, tabId);
+    const aggregatedData = aggregatePieDataFromTable(tableRows.value, key, tabId, valueKey);
 
     if (aggregatedData && aggregatedData.length > 0) {
       // 使用聚合后的数据构建图表配置
       chartConfigs[key] = createPieChartConfig(
         chartPanels.find(p => p.key === key)?.title ?? '',
-        aggregatedData
+        aggregatedData,
+        undefined,
+        valueKey
       );
     } else {
       // 没有数据时设置为 null
@@ -488,7 +499,7 @@ const updatePieChartsForTab = (tabId: string) => {
 };
 
 // 从表格数据聚合饼图数据的函数
-const aggregatePieDataFromTable = (rows: TableRow[], categoryKey: ChartCategory, tabId: string): PieValue[] => {
+const aggregatePieDataFromTable = (rows: TableRow[], categoryKey: ChartCategory, tabId: string, valueKey: string): PieValue[] => {
   // 映射表：将表格的 category 字段映射到对应的图表 key
   // industry: '按行业', product: '按产品', region: '按地区'
   const categoryLabelMap: Record<ChartCategory, string> = {
@@ -516,9 +527,9 @@ const aggregatePieDataFromTable = (rows: TableRow[], categoryKey: ChartCategory,
     const originalValue = Number(row[ratioKey] || 0);
     return {
       name: String(row.businessName || ''),
-      value: Math.abs(originalValue * 100)
+      [valueKey]: Math.abs(originalValue * 100)
     };
-  }).filter(item => item.value > 0);
+  }).filter(item => (item[valueKey] as number) > 0);
 };
 
 const renderCharts = () => {
@@ -791,9 +802,19 @@ const getRowClass = (rowIndex: number) => {
 };
 
 // 创建饼图配置
-function createPieChartConfig(centerTitle: string, values: PieValue[], centerValue?: string): ChartRenderPayload {
+function createPieChartConfig(centerTitle: string, values: PieValue[], centerValue?: string, valueKey?: string): ChartRenderPayload {
   const { pie, themeColors } = componentConfig.chartConfig;
   const colors = isDark.value ? themeColors.dark : themeColors.light;
+  const yEncoding = valueKey || 'value';
+
+  // 动态生成 layers 配置，使用动态 encoding.y
+  const dynamicLayers = pie.view.main.layers.map((layer: any) => ({
+    ...layer,
+    encoding: {
+      ...layer.encoding,
+      y: yEncoding
+    }
+  }));
 
   return {
     data: [{ values }],
@@ -819,7 +840,7 @@ function createPieChartConfig(centerTitle: string, values: PieValue[], centerVal
             }
           }
         ],
-        layers: pie.view.main.layers
+        layers: dynamicLayers
       }
     },
     token: {
