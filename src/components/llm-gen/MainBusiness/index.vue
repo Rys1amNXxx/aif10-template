@@ -442,7 +442,10 @@ const mapApiDataToTableRows = (apiData: any[]): TableRow[] => {
       profit: !isNaN(profit) ? profit / divisor : null,
       profitRatio: !isNaN(profitRatio) ? profitRatio : null,
       grossMargin: !isNaN(grossMargin) ? grossMargin : null,
-      category: dimensionToCategoryMap[item['业务维度']] || '按行业'
+      category: dimensionToCategoryMap[item['业务维度']] || '按行业',
+      revenueRaw: !isNaN(revenue) ? revenue : null,
+      costRaw: !isNaN(cost) ? cost : null,
+      profitRaw: !isNaN(profit) ? profit : null
     };
   });
 };
@@ -466,11 +469,11 @@ const applyTableData = (payload: ChartAndTablePayload | undefined) => {
   }
 };
 
-// Tab 对应的 tooltip 标签映射
+// Tab 对应的 tooltip 标签映射（使用实际值，让组件自动格式化带单位）
 const tabToTooltipLabelMap: Record<string, string> = {
-  revenue: '收入比例',
-  cost: '成本比例',
-  profit: '利润比例'
+  revenue: '营业收入',
+  cost: '营业成本',
+  profit: '主营利润'
 };
 
 // 根据当前选中的 tab 更新饼图（不影响表格数据）
@@ -515,19 +518,19 @@ const aggregatePieDataFromTable = (rows: TableRow[], categoryKey: ChartCategory,
   const filteredRows = rows.filter(row => row.category === targetCategory);
   if (!filteredRows.length) return [];
 
-  // 2. 根据当前选中的 tab 确定使用哪个比例字段
-  const ratioKeyMap: Record<string, string> = {
-    revenue: 'revenueRatio',
-    cost: 'costRatio',
-    profit: 'profitRatio'
+  // 2. 根据当前选中的 tab 确定使用哪个原始值字段（未除以单位的）
+  const rawKeyMap: Record<string, string> = {
+    revenue: 'revenueRaw',
+    cost: 'costRaw',
+    profit: 'profitRaw'
   };
-  const ratioKey = ratioKeyMap[tabId] || 'revenueRatio';
+  const rawKey = rawKeyMap[tabId] || 'revenueRaw';
 
   return filteredRows.map(row => {
-    const originalValue = Number(row[ratioKey] || 0);
+    const originalValue = Math.abs(Number(row[rawKey] || 0));
     return {
       name: String(row.businessName || ''),
-      [valueKey]: Math.abs(originalValue * 100)
+      [valueKey]: originalValue
     };
   }).filter(item => (item[valueKey] as number) > 0);
 };
