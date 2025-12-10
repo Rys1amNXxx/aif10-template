@@ -1,5 +1,4 @@
 <template>
-  <!-- 全局暂无数据兜底 -->
   <div v-if="!reportOptions.length && !chartLoading && !reportOptionsLoading"
     class="flex h-48 items-center justify-center rounded-lg border border-dashed border-border-03 text-sm text-text-04 black:border-border-03-dark black:text-text-04-dark">
     暂无数据
@@ -35,7 +34,7 @@
         </button>
         <template #dropdown>
           <el-dropdown-menu
-            class="text-text-02-01 bg-white black:text-text-02-01-dark black:bg-background-18-dark black:border-border-03-dark">
+            class="max-h-[200px] overflow-y-auto text-text-02-01 bg-white black:text-text-02-01-dark black:bg-background-18-dark black:border-border-03-dark">
             <el-dropdown-item v-for="report in reportOptions" :key="report" :command="report"
               class="!text-xs hover:!bg-background-03 hover:!text-text-02-01 black:hover:!bg-background-03-dark black:hover:!text-text-02-01-dark"
               :class="[

@@ -10,7 +10,7 @@
       "params": {
         "config_id": "main_business_fetcher_config",
         "business_id": "configurable_fetcher",
-        "subjects": ["17-600019"],
+        "subjects": ["17-688012"],
         "strategy": "newest",
         "engine": "default",
         "source": "graal_js",
@@ -35,7 +35,7 @@
       "params": {
         "business_id": "configurable_fetcher",
         "config_id": "main_business_structure_test_fetcher_config",
-        "subjects": ["17-600019"],
+        "subjects": ["17-688012"],
         "strategy": "newest",
         "engine": "default",
         "source": "http_custom",
